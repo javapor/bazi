@@ -1429,7 +1429,17 @@
       }
     }
 
-    document.getElementById("birthDate").value = "1976-05-21T10:54";
+    function currentThaiDateTimeValue() {
+      const thaiNow = new Date(Date.now() + 7 * 3600000);
+      const year = thaiNow.getUTCFullYear();
+      const month = String(thaiNow.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(thaiNow.getUTCDate()).padStart(2, "0");
+      const hour = String(thaiNow.getUTCHours()).padStart(2, "0");
+      const minute = String(thaiNow.getUTCMinutes()).padStart(2, "0");
+      return `${year}-${month}-${day}T${hour}:${minute}`;
+    }
+
+    document.getElementById("birthDate").value = currentThaiDateTimeValue();
     document.getElementById("gender").value = "male";
     document.getElementById("baziForm").addEventListener("submit", event => {
       event.preventDefault();
