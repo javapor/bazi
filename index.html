@@ -1,0 +1,1454 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bazi Pillar Plotter</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1f2933;
+      --muted: #637381;
+      --line: #d7dee8;
+      --paper: #f7f3ea;
+      --panel: #ffffff;
+      --accent: #b53f2f;
+      --accent-2: #146c66;
+      --wood: #2f7d4f;
+      --fire: #c2412d;
+      --earth: #a26a2a;
+      --metal: #65758b;
+      --water: #2563a7;
+      font-family: "Avenir Next", "Noto Sans Thai", "Noto Sans", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        linear-gradient(135deg, rgba(181, 63, 47, .09), transparent 36%),
+        linear-gradient(315deg, rgba(20, 108, 102, .10), transparent 38%),
+        var(--paper);
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 44px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 48px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      max-width: 680px;
+      font-size: 15px;
+    }
+
+    .badge {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, .7);
+      padding: 8px 12px;
+      border-radius: 999px;
+      color: var(--accent-2);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, .86);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 16px 34px rgba(47, 58, 68, .08);
+    }
+
+    .controls {
+      position: sticky;
+      top: 18px;
+      padding: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 800;
+      margin: 0 0 7px;
+    }
+
+    input, select, button {
+      width: 100%;
+      min-height: 42px;
+      border-radius: 7px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      padding: 9px 11px;
+    }
+
+    .field { margin-bottom: 14px; }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    button {
+      cursor: pointer;
+      border: 0;
+      color: #fff;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--accent), #7f2d24);
+      margin-top: 4px;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+      margin: 14px 0 0;
+    }
+
+    .meaning-panel {
+      margin-top: 16px;
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+    }
+
+    .meaning-panel h3 {
+      margin: 0 0 10px;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+
+    .meaning-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .meaning-item {
+      border: 1px solid var(--line);
+      border-left-width: 5px;
+      border-radius: 7px;
+      background: #fff;
+      padding: 8px 9px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .meaning-item strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .results {
+      display: grid;
+      gap: 18px;
+    }
+
+    .section {
+      padding: 18px;
+    }
+
+    .section h2 {
+      margin: 0 0 14px;
+      font-size: 19px;
+      letter-spacing: 0;
+    }
+
+    .pillars {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .pillar-map {
+      position: relative;
+    }
+
+    .relation-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: visible;
+      z-index: 2;
+    }
+
+    .pillar {
+      position: relative;
+      z-index: 1;
+    }
+
+    .pillar {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .pillar-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      background: #f2f5f7;
+      padding: 9px 10px;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .pillar-body {
+      display: grid;
+      grid-template-columns: 1fr;
+      min-height: 210px;
+    }
+
+    .symbol {
+      display: grid;
+      place-items: center;
+      gap: 2px;
+      padding: 13px 8px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .han {
+      font-family: "Songti SC", "Noto Serif CJK SC", serif;
+      font-size: 50px;
+      line-height: 1;
+      font-weight: 800;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .ten-god {
+      color: #8a949f;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+      line-height: 1.35;
+    }
+
+    .hidden {
+      padding: 10px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .hidden strong { display: block; margin-bottom: 5px; }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 7px;
+      background: #fbfcfd;
+      white-space: nowrap;
+    }
+
+    .chip .ten-god {
+      display: block;
+      margin-top: 1px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .relation-board {
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+    }
+
+    .relation-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 9px;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .relation-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 11px;
+    }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: auto;
+      min-height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fbfcfd;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle input {
+      width: 16px;
+      min-height: 16px;
+      height: 16px;
+      margin: 0;
+      padding: 0;
+      accent-color: var(--accent-2);
+    }
+
+    .relation-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .relation-item {
+      border: 1px solid var(--line);
+      border-left-width: 5px;
+      border-radius: 7px;
+      padding: 8px 9px;
+      font-size: 12px;
+      line-height: 1.45;
+      background: #fbfcfd;
+    }
+
+    .relation-item strong {
+      display: block;
+      color: var(--ink);
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .relation-empty {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .rel-clash { border-left-color: #c2412d; }
+    .rel-punishment { border-left-color: #7c3aed; }
+    .rel-harm { border-left-color: #d97706; }
+    .rel-break { border-left-color: #146c66; }
+    .rel-combine { border-left-color: #2f7d4f; }
+    .rel-trine { border-left-color: #0f766e; background: #f0fdfa; }
+
+    .wood { color: var(--wood); }
+    .fire { color: var(--fire); }
+    .earth { color: var(--earth); }
+    .metal { color: var(--metal); }
+    .water { color: var(--water); }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .fact {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      min-height: 74px;
+    }
+
+    .fact span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 3px;
+    }
+
+    .fact b { font-size: 17px; }
+
+    .luck-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      direction: rtl;
+    }
+
+    .luck {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 11px 10px;
+      direction: ltr;
+    }
+
+    .luck .age {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .luck .gz {
+      font-size: 28px;
+      font-family: "Songti SC", "Noto Serif CJK SC", serif;
+      font-weight: 900;
+    }
+
+    .luck-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+      margin-top: 8px;
+    }
+
+    .luck-phase {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 7px 6px;
+      background: #fbfcfd;
+      min-height: 78px;
+    }
+
+    .luck-phase span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+
+    .luck-phase .han {
+      font-size: 32px;
+    }
+
+    .luck-relations {
+      display: grid;
+      gap: 6px;
+      margin-top: 9px;
+    }
+
+    .luck-relation {
+      border: 1px solid var(--line);
+      border-left-width: 4px;
+      border-radius: 7px;
+      padding: 6px 7px;
+      background: #fff;
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .luck-relation strong {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 1px;
+    }
+
+    .luck-empty {
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 8px;
+    }
+
+    .element-bars {
+      display: grid;
+      gap: 9px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 78px 1fr 34px;
+      gap: 10px;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .track {
+      height: 12px;
+      background: #edf1f5;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      border-radius: inherit;
+    }
+
+    .error {
+      border: 1px solid #f0b4ad;
+      color: #8a271f;
+      background: #fff4f2;
+      padding: 12px;
+      border-radius: 8px;
+      display: none;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 920px) {
+      .workspace { grid-template-columns: 1fr; }
+      .controls { position: static; }
+      .pillars, .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .relation-list { grid-template-columns: 1fr; }
+      .luck-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 560px) {
+      main { width: min(100% - 20px, 1180px); padding-top: 18px; }
+      .topbar { display: block; }
+      .badge { display: inline-block; margin-top: 12px; }
+      .pillars, .summary, .luck-grid, .row { grid-template-columns: 1fr; }
+      .han { font-size: 44px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="topbar">
+      <div>
+        <h1>Bazi Pillar Plotter</h1>
+        <p class="subtitle">คำนวณดวงจีนสี่เสาแบบสุริยคติ แสดง Year, Month, Day, Hour pillars พร้อมธาตุ กิ่งซ่อน และรอบดวง 10 ปีจากเพศที่ระบุ</p>
+      </div>
+      <div class="badge">四柱八字</div>
+    </div>
+
+    <div class="workspace">
+      <form class="panel controls" id="baziForm">
+        <div class="field">
+          <label for="birthDate">วันเวลาเกิด</label>
+          <input id="birthDate" type="datetime-local" required>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="gender">เพศ</label>
+            <select id="gender">
+              <option value="male">ชาย</option>
+              <option value="female">หญิง</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit">Plot Pillars</button>
+        <p class="note">เดือนและปีเปลี่ยนตาม节气 โดยเฉพาะ立春 ไม่ใช่วันที่ 1 มกราคม ส่วนวันเริ่มใหม่ตามเวลา 00:00 ท้องถิ่น</p>
+        <div class="meaning-panel">
+          <h3>ความหมายเส้นสัมพันธ์</h3>
+          <p class="note">จับซิ้งในแต่ละช่องเทียบจากราศีบนของเสาวัน หรือ Day Master</p>
+          <div class="meaning-list">
+            <div class="meaning-item rel-clash">
+              <strong>ชง 冲</strong>
+              <span>แรงปะทะหรือแรงเปลี่ยน มักอ่านเป็นการกระทบ เคลื่อนไหว แตกต่าง หรือเรื่องที่ถูกกระตุ้นชัด</span>
+            </div>
+            <div class="meaning-item rel-punishment">
+              <strong>เฮ้ง 刑</strong>
+              <span>แรงกดดัน บีบคั้น ขัดกันภายใน หรือเรื่องที่สร้างความอึดอัดและต้องจัดการอย่างระวัง</span>
+            </div>
+            <div class="meaning-item rel-harm">
+              <strong>ไห่ 害</strong>
+              <span>แรงเบียดเบียน ทำให้เสียจังหวะ ไม่ราบรื่น หรือมีผลกระทบแฝงที่มองไม่ชัดในตอนแรก</span>
+            </div>
+            <div class="meaning-item rel-break">
+              <strong>ผั๊วะ 破</strong>
+              <span>แรงแตก หัก ละลาย หรือทำให้รูปเดิมไม่มั่นคง ใช้อ่านเรื่องการหลุดจากสภาพเดิม</span>
+            </div>
+            <div class="meaning-item rel-combine">
+              <strong>ฮะ 合</strong>
+              <span>แรงดึงดูด ผูกพัน ร่วมมือ หรือเกิดเงื่อนไขให้ธาตุเปลี่ยน แต่ต้องดูฤดูกาลและกำลังธาตุประกอบ</span>
+            </div>
+            <div class="meaning-item rel-trine">
+              <strong>ซาฮะ 三合</strong>
+              <span>สามประสานครบชุด เป็นแรงรวมกลุ่มที่ชัดกว่าฮะรายคู่ มักเน้นทิศทางธาตุของกลุ่มนั้น</span>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <div class="results">
+        <div class="error" id="errorBox"></div>
+
+        <section class="panel section">
+          <h2>สี่เสาหลัก</h2>
+          <div class="pillar-map" id="pillarMap">
+            <div class="pillars" id="pillarGrid"></div>
+            <svg class="relation-svg" id="relationSvg" aria-hidden="true"></svg>
+          </div>
+          <div class="relation-board">
+            <div class="relation-title">
+              <span>ความสัมพันธ์地支</span>
+              <span>ชง · เฮ้ง · ไห่ · ผั๊วะ · ฮะ · ซาฮะ</span>
+            </div>
+            <div class="relation-filters" id="relationFilters">
+              <label class="toggle"><input type="checkbox" id="relationAll" checked>ทั้งหมด</label>
+              <label class="toggle"><input type="checkbox" class="relation-filter" value="clash" checked>ชง</label>
+              <label class="toggle"><input type="checkbox" class="relation-filter" value="punishment" checked>เฮ้ง</label>
+              <label class="toggle"><input type="checkbox" class="relation-filter" value="harm" checked>ไห่</label>
+              <label class="toggle"><input type="checkbox" class="relation-filter" value="break" checked>ผั๊วะ</label>
+              <label class="toggle"><input type="checkbox" class="relation-filter" value="combine" checked>ฮะ</label>
+              <label class="toggle"><input type="checkbox" class="relation-filter" value="trine" checked>ซาฮะ</label>
+            </div>
+            <div class="relation-list" id="relationList"></div>
+          </div>
+        </section>
+
+        <section class="panel section">
+          <h2>รอบดวง 10 ปี</h2>
+          <div class="luck-grid" id="luckGrid"></div>
+        </section>
+
+        <section class="panel section">
+          <h2>ภาพรวม</h2>
+          <div class="summary" id="summaryGrid"></div>
+        </section>
+
+        <section class="panel section">
+          <h2>สมดุลธาตุ</h2>
+          <div class="element-bars" id="elementBars"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const stems = [
+      { han: "甲", th: "กะ", element: "ไม้", yinYang: "เอี๊ยง", cls: "wood" },
+      { han: "乙", th: "อิก", element: "ไม้", yinYang: "อิม", cls: "wood" },
+      { han: "丙", th: "เปี้ย", element: "ไฟ", yinYang: "เอี๊ยง", cls: "fire" },
+      { han: "丁", th: "เต็ง", element: "ไฟ", yinYang: "อิม", cls: "fire" },
+      { han: "戊", th: "โบ่ว", element: "ดิน", yinYang: "เอี๊ยง", cls: "earth" },
+      { han: "己", th: "กี้", element: "ดิน", yinYang: "อิม", cls: "earth" },
+      { han: "庚", th: "แก", element: "ทอง", yinYang: "เอี๊ยง", cls: "metal" },
+      { han: "辛", th: "ซิง", element: "ทอง", yinYang: "อิม", cls: "metal" },
+      { han: "壬", th: "ยิ่ม", element: "น้ำ", yinYang: "เอี๊ยง", cls: "water" },
+      { han: "癸", th: "กุ้ย", element: "น้ำ", yinYang: "อิม", cls: "water" }
+    ];
+
+    const branches = [
+      { han: "子", th: "จื้อ", animal: "หนู", element: "น้ำ", cls: "water", hidden: [9] },
+      { han: "丑", th: "ทิ่ว", animal: "วัว", element: "ดิน", cls: "earth", hidden: [5, 9, 7] },
+      { han: "寅", th: "อิ้ง", animal: "เสือ", element: "ไม้", cls: "wood", hidden: [0, 2, 4] },
+      { han: "卯", th: "เบ้า", animal: "กระต่าย", element: "ไม้", cls: "wood", hidden: [1] },
+      { han: "辰", th: "ซิ้ง", animal: "มังกร", element: "ดิน", cls: "earth", hidden: [4, 1, 9] },
+      { han: "巳", th: "จี๋", animal: "งู", element: "ไฟ", cls: "fire", hidden: [2, 4, 6] },
+      { han: "午", th: "โง่ว", animal: "ม้า", element: "ไฟ", cls: "fire", hidden: [3, 5] },
+      { han: "未", th: "บี่", animal: "แพะ", element: "ดิน", cls: "earth", hidden: [5, 3, 1] },
+      { han: "申", th: "ซิง", animal: "ลิง", element: "ทอง", cls: "metal", hidden: [6, 8, 4] },
+      { han: "酉", th: "อิ้ว", animal: "ไก่", element: "ทอง", cls: "metal", hidden: [7] },
+      { han: "戌", th: "สุก", animal: "สุนัข", element: "ดิน", cls: "earth", hidden: [4, 7, 3] },
+      { han: "亥", th: "ไห", animal: "หมู", element: "น้ำ", cls: "water", hidden: [8, 0] }
+    ];
+
+    const jieTargets = [
+      { name: "立春", th: "ลิบชุน", angle: 315, month: 0 },
+      { name: "惊蛰", th: "เก็งเต็ก", angle: 345, month: 1 },
+      { name: "清明", th: "เช็งเม้ง", angle: 15, month: 2 },
+      { name: "立夏", th: "ลิบแฮ", angle: 45, month: 3 },
+      { name: "芒种", th: "หมังเจ้ง", angle: 75, month: 4 },
+      { name: "小暑", th: "เสี่ยวสู่", angle: 105, month: 5 },
+      { name: "立秋", th: "ลิบชิว", angle: 135, month: 6 },
+      { name: "白露", th: "แปะโล่ว", angle: 165, month: 7 },
+      { name: "寒露", th: "หั่งโล่ว", angle: 195, month: 8 },
+      { name: "立冬", th: "ลิบตัง", angle: 225, month: 9 },
+      { name: "大雪", th: "ไต้ส้วด", angle: 255, month: 10 },
+      { name: "小寒", th: "เสี่ยวหั่ง", angle: 285, month: 11 }
+    ];
+
+    const termCache = new Map();
+    const elementKeys = ["ไม้", "ไฟ", "ดิน", "ทอง", "น้ำ"];
+    const elementClass = { "ไม้": "wood", "ไฟ": "fire", "ดิน": "earth", "ทอง": "metal", "น้ำ": "water" };
+    const tenGodMeanings = {
+      "比肩": "เพื่อน/ตัวตน",
+      "劫财": "คู่แข่ง/แบ่งทรัพย์",
+      "食神": "ผลงาน/การแสดงออก",
+      "伤官": "ความสามารถ/แหกกฎ",
+      "偏财": "ลาภหมุนเวียน",
+      "正财": "ทรัพย์มั่นคง",
+      "七杀": "แรงกด/อำนาจ",
+      "正官": "ระเบียบ/ตำแหน่ง",
+      "偏印": "ไหวพริบ/วิชาเฉพาะ",
+      "正印": "ผู้หนุน/ความรู้"
+    };
+    const tenGodTeochew = {
+      "比肩": "ปี่เกียง",
+      "劫财": "เกียบไฉ่",
+      "食神": "เจียะซิ้ง",
+      "伤官": "เซียงกัว",
+      "偏财": "เพียงไฉ่",
+      "正财": "เจียไฉ่",
+      "七杀": "ชิกสัวะ",
+      "正官": "เจียกัว",
+      "偏印": "เพียงอิ่ง",
+      "正印": "เจียอิ่ง"
+    };
+    const relationStyles = {
+      clash: { th: "ชง", cn: "冲", cls: "rel-clash", color: "#c2412d" },
+      punishment: { th: "เฮ้ง", cn: "刑", cls: "rel-punishment", color: "#7c3aed" },
+      harm: { th: "ไห่", cn: "害", cls: "rel-harm", color: "#d97706" },
+      break: { th: "ผั๊วะ", cn: "破", cls: "rel-break", color: "#146c66" },
+      combine: { th: "ฮะ", cn: "合", cls: "rel-combine", color: "#2f7d4f" },
+      trine: { th: "ซาฮะ", cn: "三合", cls: "rel-trine", color: "#0f766e" }
+    };
+
+    const pairRelations = [
+      ["clash", 0, 6], ["clash", 1, 7], ["clash", 2, 8], ["clash", 3, 9], ["clash", 4, 10], ["clash", 5, 11],
+      ["combine", 0, 1, "六合"], ["combine", 2, 11, "六合"], ["combine", 3, 10, "六合"],
+      ["combine", 4, 9, "六合"], ["combine", 5, 8, "六合"], ["combine", 6, 7, "六合"],
+      ["harm", 0, 7], ["harm", 1, 6], ["harm", 2, 5], ["harm", 3, 4], ["harm", 8, 11], ["harm", 9, 10],
+      ["break", 0, 9], ["break", 1, 4], ["break", 2, 11], ["break", 3, 6], ["break", 5, 8], ["break", 7, 10],
+      ["punishment", 0, 3], ["punishment", 2, 5], ["punishment", 5, 8], ["punishment", 2, 8],
+      ["punishment", 1, 10], ["punishment", 10, 7], ["punishment", 1, 7]
+    ];
+
+    const stemRelations = [
+      ["combine", 0, 5, "天干五合ธาตุดิน"],
+      ["combine", 1, 6, "天干五合ธาตุทอง"],
+      ["combine", 2, 7, "天干五合ธาตุน้ำ"],
+      ["combine", 3, 8, "天干五合ธาตุไม้"],
+      ["combine", 4, 9, "天干五合ธาตุไฟ"],
+      ["clash", 0, 6, "天干冲"],
+      ["clash", 1, 7, "天干冲"],
+      ["clash", 2, 8, "天干冲"],
+      ["clash", 3, 9, "天干冲"]
+    ];
+
+    const trineGroups = [
+      { branches: [8, 0, 4], element: "น้ำ" },
+      { branches: [11, 3, 7], element: "ไม้" },
+      { branches: [2, 6, 10], element: "ไฟ" },
+      { branches: [5, 9, 1], element: "ทอง" }
+    ];
+
+    const selfPunishmentBranches = new Set([4, 6, 9, 11]);
+
+    function mod(n, m) {
+      return ((n % m) + m) % m;
+    }
+
+    function toJulianDay(ms) {
+      return ms / 86400000 + 2440587.5;
+    }
+
+    function normalizeAngle(angle) {
+      return mod(angle, 360);
+    }
+
+    function sunLongitude(ms) {
+      const jd = toJulianDay(ms);
+      const t = (jd - 2451545.0) / 36525;
+      const l0 = normalizeAngle(280.46646 + 36000.76983 * t + 0.0003032 * t * t);
+      const m = normalizeAngle(357.52911 + 35999.05029 * t - 0.0001537 * t * t);
+      const mr = m * Math.PI / 180;
+      const c = (1.914602 - 0.004817 * t - 0.000014 * t * t) * Math.sin(mr)
+        + (0.019993 - 0.000101 * t) * Math.sin(2 * mr)
+        + 0.000289 * Math.sin(3 * mr);
+      const trueLong = l0 + c;
+      const omega = (125.04 - 1934.136 * t) * Math.PI / 180;
+      return normalizeAngle(trueLong - 0.00569 - 0.00478 * Math.sin(omega));
+    }
+
+    function passedTarget(ms, target) {
+      return normalizeAngle(sunLongitude(ms) - target);
+    }
+
+    function findSolarTerm(year, target) {
+      const cacheKey = `${year}-${target.angle}`;
+      if (termCache.has(cacheKey)) return termCache.get(cacheKey);
+
+      let start = Date.UTC(year - 1, 0, 1);
+      const end = Date.UTC(year + 1, 11, 31);
+      const day = 86400000;
+      let prevMs = start;
+      let prev = passedTarget(prevMs, target.angle);
+
+      for (let ms = start + day; ms <= end; ms += day) {
+        const cur = passedTarget(ms, target.angle);
+        if (cur < prev) {
+          let lo = prevMs;
+          let hi = ms;
+          for (let i = 0; i < 44; i++) {
+            const mid = (lo + hi) / 2;
+            if (passedTarget(mid, target.angle) < passedTarget(lo, target.angle)) hi = mid;
+            else lo = mid;
+          }
+          const found = new Date((lo + hi) / 2);
+          termCache.set(cacheKey, found);
+          return found;
+        }
+        prevMs = ms;
+        prev = cur;
+      }
+      throw new Error(`ไม่พบ solar term ${target.name} สำหรับปี ${year}`);
+    }
+
+    function getJieTerms(year) {
+      const terms = [];
+      for (let y = year - 1; y <= year + 1; y++) {
+        jieTargets.forEach(target => {
+          terms.push({ ...target, date: findSolarTerm(y, target) });
+        });
+      }
+      return terms.sort((a, b) => a.date - b.date);
+    }
+
+    function localParts(value, zone) {
+      const [datePart, timePart] = value.split("T");
+      const [year, month, day] = datePart.split("-").map(Number);
+      const [hour, minute] = timePart.split(":").map(Number);
+      const utcMs = Date.UTC(year, month - 1, day, hour - zone, minute || 0, 0);
+      return { year, month, day, hour, minute: minute || 0, utcMs };
+    }
+
+    function gregorianJdn(year, month, day) {
+      const a = Math.floor((14 - month) / 12);
+      const y = year + 4800 - a;
+      const m = month + 12 * a - 3;
+      return day + Math.floor((153 * m + 2) / 5) + 365 * y
+        + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+    }
+
+    function sexagenary(index) {
+      return { stem: mod(index, 10), branch: mod(index, 12), index: mod(index, 60) };
+    }
+
+    function gzText(gz) {
+      return stems[gz.stem].han + branches[gz.branch].han;
+    }
+
+    function stemElementIndex(stemIndex) {
+      return Math.floor(stemIndex / 2);
+    }
+
+    function tenGod(dayStemIndex, targetStemIndex) {
+      const dayElement = stemElementIndex(dayStemIndex);
+      const targetElement = stemElementIndex(targetStemIndex);
+      const samePolarity = dayStemIndex % 2 === targetStemIndex % 2;
+      const relation = mod(targetElement - dayElement, 5);
+      if (relation === 0) return samePolarity ? "比肩" : "劫财";
+      if (relation === 1) return samePolarity ? "食神" : "伤官";
+      if (relation === 2) return samePolarity ? "偏财" : "正财";
+      if (relation === 3) return samePolarity ? "七杀" : "正官";
+      return samePolarity ? "偏印" : "正印";
+    }
+
+    function tenGodLabel(dayStemIndex, targetStemIndex) {
+      const god = tenGod(dayStemIndex, targetStemIndex);
+      return tenGodTeochew[god];
+    }
+
+    function calculate(value, gender, zone) {
+      const local = localParts(value, zone);
+      const birth = new Date(local.utcMs);
+      const terms = getJieTerms(local.year);
+      const lichun = terms.find(t => t.name === "立春" && t.date.getUTCFullYear() === local.year);
+      const solarYear = birth < lichun.date ? local.year - 1 : local.year;
+      const yearGz = sexagenary(solarYear - 4);
+
+      const previousTerms = terms.filter(t => t.date <= birth);
+      const nextTerms = terms.filter(t => t.date > birth);
+      const prevJie = previousTerms[previousTerms.length - 1];
+      const nextJie = nextTerms[0];
+
+      const monthBranch = mod(2 + prevJie.month, 12);
+      const monthStem = mod((yearGz.stem % 5) * 2 + 2 + prevJie.month, 10);
+      const monthGz = { stem: monthStem, branch: monthBranch, index: monthStem };
+
+      const referenceJdn = gregorianJdn(1949, 10, 1);
+      const dayIndex = mod(gregorianJdn(local.year, local.month, local.day) - referenceJdn, 60);
+      const dayGz = sexagenary(dayIndex);
+
+      const hourBranch = Math.floor(mod(local.hour + 1, 24) / 2);
+      const hourStem = mod((dayGz.stem % 5) * 2 + hourBranch, 10);
+      const hourGz = { stem: hourStem, branch: hourBranch, index: hourStem };
+
+      const isForward = (gender === "male" && yearGz.stem % 2 === 0) || (gender === "female" && yearGz.stem % 2 === 1);
+      const diffDays = Math.abs((isForward ? nextJie.date - birth : birth - prevJie.date) / 86400000);
+      const startAge = diffDays / 3;
+      const luck = [];
+      const monthCycleIndex = findCycleIndex(monthStem, monthBranch);
+      for (let i = 1; i <= 10; i++) {
+        const idx = mod(monthCycleIndex + (isForward ? i : -i), 60);
+        luck.push({ age: startAge + (i - 1) * 10, gz: sexagenary(idx), index: idx });
+      }
+
+      return {
+        local,
+        birth,
+        solarYear,
+        prevJie,
+        nextJie,
+        direction: isForward ? "เดินหน้า" : "ถอยหลัง",
+        startAge,
+        pillars: [
+          { label: "Hour Pillar", th: "เสายาม", gz: { ...hourGz, index: findCycleIndex(hourStem, hourBranch) } },
+          { label: "Day Pillar", th: "เสาวัน", gz: dayGz },
+          { label: "Month Pillar", th: "เสาเดือน", gz: { ...monthGz, index: monthCycleIndex } },
+          { label: "Year Pillar", th: "เสาปี", gz: yearGz }
+        ],
+        luck
+      };
+    }
+
+    function findCycleIndex(stem, branch) {
+      for (let i = 0; i < 60; i++) {
+        if (i % 10 === stem && i % 12 === branch) return i;
+      }
+      return 0;
+    }
+
+    function formatDate(date, zone) {
+      const shifted = new Date(date.getTime() + zone * 3600000);
+      const y = shifted.getUTCFullYear();
+      const m = String(shifted.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(shifted.getUTCDate()).padStart(2, "0");
+      const hh = String(shifted.getUTCHours()).padStart(2, "0");
+      const mm = String(shifted.getUTCMinutes()).padStart(2, "0");
+      return `${y}-${m}-${d} ${hh}:${mm}`;
+    }
+
+    function renderPillars(result) {
+      const grid = document.getElementById("pillarGrid");
+      const dayStemIndex = result.pillars.find(p => p.label === "Day Pillar").gz.stem;
+      grid.innerHTML = result.pillars.map(pillar => {
+        const stem = stems[pillar.gz.stem];
+        const branch = branches[pillar.gz.branch];
+        const hidden = branch.hidden.map(i => {
+          const item = stems[i];
+          return `<span class="chip ${item.cls}">${item.han} ${item.element}<span class="ten-god">${tenGodLabel(dayStemIndex, i)}</span></span>`;
+        }).join("");
+        const stemGod = tenGodLabel(dayStemIndex, pillar.gz.stem);
+        const branchMainGod = tenGodLabel(dayStemIndex, branch.hidden[0]);
+        return `
+          <article class="pillar">
+            <div class="pillar-title"><span>${pillar.th}</span><span>${pillar.label}</span></div>
+            <div class="pillar-body">
+              <div class="symbol stem-symbol" data-pillar-index="${result.pillars.indexOf(pillar)}">
+                <div class="han ${stem.cls}">${stem.han}</div>
+                <div class="meta">${stem.th} · ${stem.element}${stem.yinYang}</div>
+                <div class="ten-god">${stemGod}</div>
+              </div>
+              <div class="symbol branch-symbol" data-pillar-index="${result.pillars.indexOf(pillar)}">
+                <div class="han ${branch.cls}">${branch.han}</div>
+                <div class="meta">${branch.th} · ${branch.element} · ${branch.animal}</div>
+                <div class="ten-god">${branchMainGod}</div>
+              </div>
+              <div class="hidden">
+                <strong>กิ่งซ่อน</strong>
+                <div class="chips">${hidden}</div>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function branchName(index) {
+      const branch = branches[index];
+      return `${branch.han} ${branch.th}`;
+    }
+
+    function stemName(index) {
+      const stem = stems[index];
+      return `${stem.han} ${stem.th}`;
+    }
+
+    function relationKey(relation) {
+      return `${relation.scope || "branch"}-${relation.type}-${relation.from}-${relation.to}-${relation.a}-${relation.b}-${relation.note || ""}-${relation.self || ""}`;
+    }
+
+    function addUniqueRelation(relations, relation) {
+      const key = relationKey(relation);
+      if (!relations.some(item => relationKey(item) === key)) relations.push(relation);
+    }
+
+    function findBranchRelations(pillars) {
+      const relations = [];
+      for (let i = 0; i < pillars.length; i++) {
+        for (let j = i + 1; j < pillars.length; j++) {
+          const a = pillars[i].gz.branch;
+          const b = pillars[j].gz.branch;
+          pairRelations.forEach(([type, first, second, note]) => {
+            if ((a === first && b === second) || (a === second && b === first)) {
+              addUniqueRelation(relations, { scope: "branch", type, from: i, to: j, a, b, note });
+            }
+          });
+          if (a === b && selfPunishmentBranches.has(a)) {
+            addUniqueRelation(relations, { scope: "branch", type: "punishment", from: i, to: j, a, b, self: true });
+          }
+        }
+      }
+      trineGroups.forEach(group => {
+        const found = pillars
+          .map((pillar, index) => ({ index, branch: pillar.gz.branch }))
+          .filter(item => group.branches.includes(item.branch));
+        if (found.length >= 2) {
+          const isFull = new Set(found.map(item => item.branch)).size === 3;
+          if (isFull) {
+            const trineMembers = group.branches.map(branch => found.find(item => item.branch === branch));
+            addUniqueRelation(relations, {
+              scope: "branch",
+              type: "trine",
+              from: trineMembers[0].index,
+              to: trineMembers[1].index,
+              a: trineMembers[0].branch,
+              b: trineMembers[1].branch,
+              members: trineMembers,
+              note: `三合ธาตุ${group.element}`
+            });
+          }
+          for (let i = 0; i < found.length; i++) {
+            for (let j = i + 1; j < found.length; j++) {
+              if (found[i].branch === found[j].branch) continue;
+              addUniqueRelation(relations, {
+                scope: "branch",
+                type: "combine",
+                from: found[i].index,
+                to: found[j].index,
+                a: found[i].branch,
+                b: found[j].branch,
+                note: `${isFull ? "三合" : "ครึ่ง三合"}ธาตุ${group.element}`
+              });
+            }
+          }
+        }
+      });
+      return relations;
+    }
+
+    function findStemRelations(pillars) {
+      const relations = [];
+      for (let i = 0; i < pillars.length; i++) {
+        for (let j = i + 1; j < pillars.length; j++) {
+          const a = pillars[i].gz.stem;
+          const b = pillars[j].gz.stem;
+          stemRelations.forEach(([type, first, second, note]) => {
+            if ((a === first && b === second) || (a === second && b === first)) {
+              addUniqueRelation(relations, { scope: "stem", type, from: i, to: j, a, b, note });
+            }
+          });
+        }
+      }
+      return relations;
+    }
+
+    function findLuckNatalRelations(result, luckItem) {
+      const relations = [];
+      const add = relation => addUniqueRelation(relations, relation);
+
+      result.pillars.forEach((pillar, index) => {
+        stemRelations.forEach(([type, first, second, note]) => {
+          const a = luckItem.gz.stem;
+          const b = pillar.gz.stem;
+          if ((a === first && b === second) || (a === second && b === first)) {
+            add({ scope: "stem", type, from: -1, to: index, a, b, note, pillar: pillar.th });
+          }
+        });
+
+        pairRelations.forEach(([type, first, second, note]) => {
+          const a = luckItem.gz.branch;
+          const b = pillar.gz.branch;
+          if ((a === first && b === second) || (a === second && b === first)) {
+            add({ scope: "branch", type, from: -1, to: index, a, b, note, pillar: pillar.th });
+          }
+        });
+
+        if (luckItem.gz.branch === pillar.gz.branch && selfPunishmentBranches.has(luckItem.gz.branch)) {
+          add({
+            scope: "branch",
+            type: "punishment",
+            from: -1,
+            to: index,
+            a: luckItem.gz.branch,
+            b: pillar.gz.branch,
+            self: true,
+            pillar: pillar.th
+          });
+        }
+      });
+
+      trineGroups.forEach(group => {
+        if (!group.branches.includes(luckItem.gz.branch)) return;
+        const natalMatches = result.pillars
+          .map((pillar, index) => ({ index, branch: pillar.gz.branch, pillar: pillar.th }))
+          .filter(item => item.branch !== luckItem.gz.branch && group.branches.includes(item.branch));
+        const seenBranches = new Set(natalMatches.map(item => item.branch));
+        const isFull = seenBranches.size >= 2;
+
+        natalMatches.forEach(match => {
+          add({
+            scope: "branch",
+            type: "combine",
+            from: -1,
+            to: match.index,
+            a: luckItem.gz.branch,
+            b: match.branch,
+            note: `${isFull ? "三合" : "ครึ่ง三合"}ธาตุ${group.element}`,
+            pillar: match.pillar
+          });
+        });
+
+        if (isFull) {
+          add({
+            scope: "branch",
+            type: "trine",
+            from: -1,
+            to: natalMatches[0].index,
+            a: luckItem.gz.branch,
+            b: natalMatches[0].branch,
+            note: `三合ธาตุ${group.element}`,
+            members: [
+              { branch: luckItem.gz.branch, pillar: "รอบดวง" },
+              ...natalMatches.filter((item, index, arr) => arr.findIndex(other => other.branch === item.branch) === index)
+            ]
+          });
+        }
+      });
+
+      return relations;
+    }
+
+    function renderRelationList(result, relations) {
+      const list = document.getElementById("relationList");
+      if (!relations.length) {
+        list.innerHTML = `<p class="relation-empty">ไม่พบความสัมพันธ์ที่เปิดไว้ระหว่างราศีบน/ราศีล่างทั้ง 4 เสา</p>`;
+        return;
+      }
+      list.innerHTML = relations.map(rel => {
+        const style = relationStyles[rel.type];
+        const from = result.pillars[rel.from];
+        const to = result.pillars[rel.to];
+        const scopeText = rel.scope === "stem" ? "ราศีบน 天干" : "ราศีล่าง 地支";
+        const detail = rel.type === "trine"
+          ? `${rel.members.map(member => branchName(member.branch)).join(" + ")} · ${rel.note}`
+          : rel.self
+          ? `${branchName(rel.a)} ซ้ำกัน เป็น自刑`
+          : `${rel.scope === "stem" ? stemName(rel.a) : branchName(rel.a)} ↔ ${rel.scope === "stem" ? stemName(rel.b) : branchName(rel.b)}${rel.note ? ` · ${rel.note}` : ""}`;
+        const heading = rel.type === "trine"
+          ? `${style.th} ${style.cn}: ${rel.members.map(member => result.pillars[member.index].th).join(" + ")}`
+          : `${style.th} ${style.cn}: ${from.th} - ${to.th}`;
+        return `
+          <div class="relation-item ${style.cls}">
+            <strong>${heading}</strong>
+            <span>${scopeText}</span>
+            <span>${detail}</span>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function drawRelationLines(relations) {
+      const map = document.getElementById("pillarMap");
+      const svg = document.getElementById("relationSvg");
+      const branchMarkers = Array.from(document.querySelectorAll(".branch-symbol"));
+      const stemMarkers = Array.from(document.querySelectorAll(".stem-symbol"));
+      const mapRect = map.getBoundingClientRect();
+      svg.setAttribute("viewBox", `0 0 ${mapRect.width} ${mapRect.height}`);
+      svg.innerHTML = "";
+      if (!relations.length || !mapRect.width || !mapRect.height) return;
+
+      relations.forEach((rel, index) => {
+        if (rel.type === "trine" && rel.members) {
+          const style = relationStyles[rel.type];
+          const points = rel.members.map(member => {
+            const el = branchMarkers[member.index];
+            if (!el) return null;
+            const rect = el.getBoundingClientRect();
+            return {
+              x: rect.left + rect.width / 2 - mapRect.left,
+              y: rect.top + rect.height / 2 - mapRect.top
+            };
+          }).filter(Boolean);
+          if (points.length < 3) return;
+
+          [[0, 1], [1, 2], [2, 0]].forEach(([a, b]) => {
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", `M ${points[a].x} ${points[a].y} L ${points[b].x} ${points[b].y}`);
+            path.setAttribute("fill", "none");
+            path.setAttribute("stroke", style.color);
+            path.setAttribute("stroke-width", "4");
+            path.setAttribute("stroke-linecap", "round");
+            path.setAttribute("stroke-dasharray", "8 6");
+            path.setAttribute("opacity", ".88");
+            svg.appendChild(path);
+          });
+
+          points.forEach(point => {
+            const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            dot.setAttribute("cx", point.x);
+            dot.setAttribute("cy", point.y);
+            dot.setAttribute("r", "5");
+            dot.setAttribute("fill", style.color);
+            svg.appendChild(dot);
+          });
+
+          const labelX = points.reduce((sum, point) => sum + point.x, 0) / points.length;
+          const labelY = points.reduce((sum, point) => sum + point.y, 0) / points.length - 8;
+          const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          text.setAttribute("x", labelX);
+          text.setAttribute("y", labelY);
+          text.setAttribute("text-anchor", "middle");
+          text.setAttribute("paint-order", "stroke");
+          text.setAttribute("stroke", "#fff");
+          text.setAttribute("stroke-width", "6");
+          text.setAttribute("fill", style.color);
+          text.setAttribute("font-size", "14");
+          text.setAttribute("font-weight", "900");
+          text.textContent = `${style.th}${style.cn}`;
+          svg.appendChild(text);
+          return;
+        }
+
+        const markers = rel.scope === "stem" ? stemMarkers : branchMarkers;
+        const fromEl = markers[rel.from];
+        const toEl = markers[rel.to];
+        if (!fromEl || !toEl) return;
+
+        const from = fromEl.getBoundingClientRect();
+        const to = toEl.getBoundingClientRect();
+        const x1 = from.left + from.width / 2 - mapRect.left;
+        const y1 = from.top + from.height / 2 - mapRect.top;
+        const x2 = to.left + to.width / 2 - mapRect.left;
+        const y2 = to.top + to.height / 2 - mapRect.top;
+        const style = relationStyles[rel.type];
+        const offset = (index % 5 - 2) * 18;
+        const cx = (x1 + x2) / 2;
+        const cy = (y1 + y2) / 2 - 52 - offset;
+        const labelX = (x1 + x2) / 2;
+        const labelY = (y1 + y2) / 2 - 18 - offset / 2;
+
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", style.color);
+        path.setAttribute("stroke-width", "3");
+        path.setAttribute("stroke-linecap", "round");
+        path.setAttribute("opacity", ".86");
+        svg.appendChild(path);
+
+        const dotA = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        dotA.setAttribute("cx", x1);
+        dotA.setAttribute("cy", y1);
+        dotA.setAttribute("r", "4");
+        dotA.setAttribute("fill", style.color);
+        svg.appendChild(dotA);
+
+        const dotB = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        dotB.setAttribute("cx", x2);
+        dotB.setAttribute("cy", y2);
+        dotB.setAttribute("r", "4");
+        dotB.setAttribute("fill", style.color);
+        svg.appendChild(dotB);
+
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", labelX);
+        text.setAttribute("y", labelY);
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("paint-order", "stroke");
+        text.setAttribute("stroke", "#fff");
+        text.setAttribute("stroke-width", "5");
+        text.setAttribute("fill", style.color);
+        text.setAttribute("font-size", "13");
+        text.setAttribute("font-weight", "900");
+        text.textContent = `${style.th}${style.cn}`;
+        svg.appendChild(text);
+      });
+    }
+
+    function getEnabledRelationTypes() {
+      return new Set(Array.from(document.querySelectorAll(".relation-filter:checked")).map(input => input.value));
+    }
+
+    function syncRelationAllToggle() {
+      const filters = Array.from(document.querySelectorAll(".relation-filter"));
+      const all = document.getElementById("relationAll");
+      const checkedCount = filters.filter(input => input.checked).length;
+      all.checked = checkedCount === filters.length;
+      all.indeterminate = checkedCount > 0 && checkedCount < filters.length;
+    }
+
+    function refreshRelationFilters() {
+      if (!window.currentBaziResult) return;
+      const enabledTypes = getEnabledRelationTypes();
+      const visibleRelations = (window.allBranchRelations || []).filter(rel => enabledTypes.has(rel.type));
+      if (!enabledTypes.size) {
+        document.getElementById("relationList").innerHTML = `<p class="relation-empty">ปิดการแสดงความสัมพันธ์ทั้งหมดอยู่</p>`;
+        drawRelationLines([]);
+      } else {
+        renderRelationList(window.currentBaziResult, visibleRelations);
+        requestAnimationFrame(() => drawRelationLines(visibleRelations));
+      }
+      window.currentBranchRelations = visibleRelations;
+      syncRelationAllToggle();
+    }
+
+    function renderRelations(result) {
+      const relations = [
+        ...findStemRelations(result.pillars),
+        ...findBranchRelations(result.pillars)
+      ];
+      window.allBranchRelations = relations;
+      refreshRelationFilters();
+    }
+
+    function renderSummary(result, gender, zone) {
+      const dayStem = stems[result.pillars.find(p => p.label === "Day Pillar").gz.stem];
+      document.getElementById("summaryGrid").innerHTML = [
+        ["Day Master", `${dayStem.han} ${dayStem.th}`, `${dayStem.element}${dayStem.yinYang}`],
+        ["ปีสุริยคติ", String(result.solarYear), `ปีเปลี่ยนที่ ${result.prevJie.name}`],
+        ["เดือน Bazi", `${result.prevJie.name} ${result.prevJie.th}`, formatDate(result.prevJie.date, zone)],
+        ["รอบดวง", result.direction, `เริ่มราว ${result.startAge.toFixed(1)} ปี`],
+        ["เพศ", gender === "male" ? "ชาย" : "หญิง", "ใช้กำหนดทิศทาง大运"],
+        ["节气 ถัดไป", `${result.nextJie.name} ${result.nextJie.th}`, formatDate(result.nextJie.date, zone)],
+        ["วันเวลาเกิด", formatDate(result.birth, zone), "เวลาไทย"],
+        ["สี่เสา", result.pillars.map(p => gzText(p.gz)).join("  "), "เรียง ยาม วัน เดือน ปี"]
+      ].map(([label, value, detail]) => `
+        <div class="fact">
+          <span>${label}</span>
+          <b>${value}</b>
+          <span>${detail}</span>
+        </div>
+      `).join("");
+    }
+
+    function renderElements(result) {
+      const counts = Object.fromEntries(elementKeys.map(k => [k, 0]));
+      result.pillars.forEach(pillar => {
+        const stem = stems[pillar.gz.stem];
+        const branch = branches[pillar.gz.branch];
+        counts[stem.element] += 1;
+        counts[branch.element] += 1;
+        branch.hidden.forEach((stemIndex, pos) => {
+          counts[stems[stemIndex].element] += pos === 0 ? 0.45 : 0.25;
+        });
+      });
+      const max = Math.max(...Object.values(counts), 1);
+      document.getElementById("elementBars").innerHTML = elementKeys.map(key => `
+        <div class="bar-row">
+          <strong>${key}</strong>
+          <div class="track"><div class="fill ${elementClass[key]}" style="width:${(counts[key] / max) * 100}%"></div></div>
+          <span>${counts[key].toFixed(1)}</span>
+        </div>
+      `).join("");
+    }
+
+    function renderLuck(result) {
+      document.getElementById("luckGrid").innerHTML = result.luck.map(item => {
+        const stem = stems[item.gz.stem];
+        const branch = branches[item.gz.branch];
+        const firstStart = item.age;
+        const firstEnd = item.age + 4.9;
+        const secondStart = item.age + 5;
+        const secondEnd = item.age + 9.9;
+        const relations = findLuckNatalRelations(result, item);
+        const relationHtml = relations.length
+          ? `<div class="luck-relations">${relations.map(rel => {
+            const style = relationStyles[rel.type];
+            const source = rel.scope === "stem" ? "ราศีบน" : "ราศีล่าง";
+            const pair = rel.type === "trine"
+              ? rel.members.map(member => member.pillar === "รอบดวง" ? branchName(member.branch) : `${branchName(member.branch)}(${member.pillar})`).join(" + ")
+              : `${rel.scope === "stem" ? stemName(rel.a) : branchName(rel.a)} → ${rel.scope === "stem" ? stemName(rel.b) : branchName(rel.b)}(${rel.pillar})`;
+            return `
+              <div class="luck-relation ${style.cls}">
+                <strong>${style.th} ${source} → พื้นดวง</strong>
+                <span>${pair}${rel.note ? ` · ${rel.note}` : ""}</span>
+              </div>
+            `;
+          }).join("")}</div>`
+          : `<div class="luck-empty">ไม่พบความสัมพันธ์เด่นกับพื้นดวงเดิม</div>`;
+        return `
+          <div class="luck">
+            <div class="age">อายุ ${item.age.toFixed(1)}-${(item.age + 9.9).toFixed(1)}</div>
+            <div class="luck-split">
+              <div class="luck-phase">
+                <span>${firstStart.toFixed(1)}-${firstEnd.toFixed(1)} ปี</span>
+                <div class="han ${stem.cls}">${stem.han}</div>
+                <div class="meta">ราศีบน · ${stem.element}${stem.yinYang}</div>
+              </div>
+              <div class="luck-phase">
+                <span>${secondStart.toFixed(1)}-${secondEnd.toFixed(1)} ปี</span>
+                <div class="han ${branch.cls}">${branch.han}</div>
+                <div class="meta">ราศีล่าง · ${branch.element}</div>
+              </div>
+            </div>
+            ${relationHtml}
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderAll() {
+      const errorBox = document.getElementById("errorBox");
+      errorBox.style.display = "none";
+      try {
+        const value = document.getElementById("birthDate").value;
+        const gender = document.getElementById("gender").value;
+        const zone = 7;
+        if (!value) return;
+        const result = calculate(value, gender, zone);
+        window.currentBaziResult = result;
+        renderPillars(result);
+        renderRelations(result);
+        renderSummary(result, gender, zone);
+        renderElements(result);
+        renderLuck(result);
+      } catch (error) {
+        errorBox.textContent = error.message;
+        errorBox.style.display = "block";
+      }
+    }
+
+    document.getElementById("birthDate").value = "1976-05-21T10:54";
+    document.getElementById("gender").value = "male";
+    document.getElementById("baziForm").addEventListener("submit", event => {
+      event.preventDefault();
+      renderAll();
+    });
+    document.querySelectorAll("#baziForm input, #baziForm select").forEach(el => el.addEventListener("change", renderAll));
+    document.getElementById("relationAll").addEventListener("change", event => {
+      document.querySelectorAll(".relation-filter").forEach(input => {
+        input.checked = event.target.checked;
+      });
+      refreshRelationFilters();
+    });
+    document.querySelectorAll(".relation-filter").forEach(input => {
+      input.addEventListener("change", refreshRelationFilters);
+    });
+    window.addEventListener("resize", () => {
+      if (window.currentBranchRelations) drawRelationLines(window.currentBranchRelations);
+    });
+    renderAll();
+  </script>
+</body>
+</html>
