@@ -590,7 +590,7 @@
             </div>
             <div class="meaning-item rel-killer">
               <strong>พิฆาต 七杀</strong>
-              <span>ราศีบนที่เป็นชิกสัวะเมื่อเทียบกับ Day Master เป็นแรงกด อำนาจ การแข่งขัน หรือโจทย์ที่บังคับให้เด็ดขาด</span>
+              <span>ราศีบนหนึ่งเป็นชิกสัวะของอีกราศีบน เป็นแรงกด อำนาจ การแข่งขัน หรือโจทย์ที่บังคับให้เด็ดขาด</span>
             </div>
             <div class="meaning-item rel-punishment">
               <strong>เฮ้ง 刑</strong>
@@ -1132,8 +1132,6 @@
 
     function findStemRelations(pillars) {
       const relations = [];
-      const dayIndex = pillars.findIndex(pillar => pillar.label === "Day Pillar");
-      const dayStem = pillars[dayIndex].gz.stem;
       for (let i = 0; i < pillars.length; i++) {
         for (let j = i + 1; j < pillars.length; j++) {
           const a = pillars[i].gz.stem;
@@ -1143,17 +1141,27 @@
               addUniqueRelation(relations, { scope: "stem", type, from: i, to: j, a, b, note });
             }
           });
-        }
-        if (i !== dayIndex && tenGod(dayStem, pillars[i].gz.stem) === "七杀") {
-          addUniqueRelation(relations, {
-            scope: "stem",
-            type: "killer",
-            from: dayIndex,
-            to: i,
-            a: dayStem,
-            b: pillars[i].gz.stem,
-            note: "ราศีบนนี้เป็นชิกสัวะของ Day Master"
-          });
+          if (tenGod(a, b) === "七杀") {
+            addUniqueRelation(relations, {
+              scope: "stem",
+              type: "killer",
+              from: i,
+              to: j,
+              a,
+              b,
+              note: `${stemName(b)}เป็นชิกสัวะของ${stemName(a)}`
+            });
+          } else if (tenGod(b, a) === "七杀") {
+            addUniqueRelation(relations, {
+              scope: "stem",
+              type: "killer",
+              from: j,
+              to: i,
+              a: b,
+              b: a,
+              note: `${stemName(a)}เป็นชิกสัวะของ${stemName(b)}`
+            });
+          }
         }
       }
       return relations;
@@ -1163,23 +1171,36 @@
       const relations = [];
       const add = relation => addUniqueRelation(relations, relation);
       const monthBranch = getMonthBranch(result.pillars);
-      const dayPillarIndex = result.pillars.findIndex(pillar => pillar.label === "Day Pillar");
-      const dayStem = result.pillars[dayPillarIndex].gz.stem;
-
-      if (tenGod(dayStem, luckItem.gz.stem) === "七杀") {
-        add({
-          scope: "stem",
-          type: "killer",
-          from: -1,
-          to: dayPillarIndex,
-          a: luckItem.gz.stem,
-          b: dayStem,
-          note: "ราศีบนรอบดวงเป็นชิกสัวะของ Day Master",
-          pillar: "เสาวัน"
-        });
-      }
 
       result.pillars.forEach((pillar, index) => {
+        const luckStem = luckItem.gz.stem;
+        const natalStem = pillar.gz.stem;
+        if (tenGod(luckStem, natalStem) === "七杀") {
+          add({
+            scope: "stem",
+            type: "killer",
+            from: -1,
+            to: index,
+            a: luckStem,
+            b: natalStem,
+            note: `${stemName(natalStem)}เป็นชิกสัวะของ${stemName(luckStem)}`,
+            pillar: pillar.th,
+            luckSide: "source"
+          });
+        } else if (tenGod(natalStem, luckStem) === "七杀") {
+          add({
+            scope: "stem",
+            type: "killer",
+            from: -1,
+            to: index,
+            a: natalStem,
+            b: luckStem,
+            note: `${stemName(luckStem)}เป็นชิกสัวะของ${stemName(natalStem)}`,
+            pillar: pillar.th,
+            luckSide: "killer"
+          });
+        }
+
         stemRelations.forEach(([type, first, second, note]) => {
           const a = luckItem.gz.stem;
           const b = pillar.gz.stem;
@@ -1521,6 +1542,10 @@
             const source = rel.scope === "stem" ? "ราศีบน" : "ราศีล่าง";
             const pair = (rel.type === "trine" || rel.type === "meeting")
               ? rel.members.map(member => member.pillar === "รอบดวง" ? branchName(member.branch) : `${branchName(member.branch)}(${member.pillar})`).join(" + ")
+              : rel.type === "killer" && rel.luckSide === "killer"
+              ? `${stemName(rel.a)}(${rel.pillar}) → ${stemName(rel.b)}(รอบดวง)`
+              : rel.type === "killer" && rel.luckSide === "source"
+              ? `${stemName(rel.a)}(รอบดวง) → ${stemName(rel.b)}(${rel.pillar})`
               : `${rel.scope === "stem" ? stemName(rel.a) : branchName(rel.a)} → ${rel.scope === "stem" ? stemName(rel.b) : branchName(rel.b)}(${rel.pillar})`;
             return `
               <div class="luck-relation ${style.cls}">
