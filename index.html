@@ -379,6 +379,7 @@
     .rel-combine { border-left-color: #2f7d4f; }
     .rel-trine { border-left-color: #0f766e; background: #f0fdfa; }
     .rel-partial { border-left-color: #8a949f; background: #f8fafc; }
+    .rel-meeting { border-left-color: #0e7490; background: #ecfeff; }
 
     .wood { color: var(--wood); }
     .fire { color: var(--fire); }
@@ -610,6 +611,10 @@
               <strong>ซาฮะ 三合</strong>
               <span>สามประสานครบชุด เป็นแรงรวมกลุ่มที่ชัดกว่าฮะรายคู่ มักเน้นทิศทางธาตุของกลุ่มนั้น</span>
             </div>
+            <div class="meaning-item rel-meeting">
+              <strong>ซาฮวย 三会</strong>
+              <span>สามฐานฤดูกาลครบชุด เช่น 寅卯辰 เป็นแรงรวมฤดูกาลที่มีกำลังมากและชัดกว่าแรงรายคู่</span>
+            </div>
           </div>
         </div>
       </form>
@@ -626,7 +631,7 @@
           <div class="relation-board">
             <div class="relation-title">
               <span>ความสัมพันธ์地支</span>
-              <span>ชง · เฮ้ง · ไห่ · ผั๊วะ · ฮะ · ครึ่งภาคี · ซาฮะ</span>
+              <span>ชง · เฮ้ง · ไห่ · ผั๊วะ · ฮะ · ครึ่งภาคี · ซาฮะ · ซาฮวย</span>
             </div>
             <div class="relation-filters" id="relationFilters">
               <label class="toggle"><input type="checkbox" id="relationAll" checked>ทั้งหมด</label>
@@ -637,6 +642,7 @@
               <label class="toggle"><input type="checkbox" class="relation-filter" value="combine" checked>ฮะ</label>
               <label class="toggle"><input type="checkbox" class="relation-filter" value="partialCombine" checked>ครึ่งภาคี</label>
               <label class="toggle"><input type="checkbox" class="relation-filter" value="trine" checked>ซาฮะ</label>
+              <label class="toggle"><input type="checkbox" class="relation-filter" value="meeting" checked>ซาฮวย</label>
             </div>
             <div class="relation-list" id="relationList"></div>
           </div>
@@ -738,7 +744,8 @@
       break: { th: "ผั๊วะ", cn: "破", cls: "rel-break", color: "#146c66" },
       combine: { th: "ฮะ", cn: "合", cls: "rel-combine", color: "#2f7d4f" },
       partialCombine: { th: "ครึ่งภาคี", cn: "", cls: "rel-partial", color: "#8a949f" },
-      trine: { th: "ซาฮะ", cn: "三合", cls: "rel-trine", color: "#0f766e" }
+      trine: { th: "ซาฮะ", cn: "三合", cls: "rel-trine", color: "#0f766e" },
+      meeting: { th: "ซาฮวย", cn: "三会", cls: "rel-meeting", color: "#0e7490" }
     };
 
     const pairRelations = [
@@ -768,6 +775,13 @@
       { branches: [11, 3, 7], element: "ไม้" },
       { branches: [2, 6, 10], element: "ไฟ" },
       { branches: [5, 9, 1], element: "ทอง" }
+    ];
+
+    const meetingGroups = [
+      { branches: [2, 3, 4], element: "ไม้" },
+      { branches: [5, 6, 7], element: "ไฟ" },
+      { branches: [8, 9, 10], element: "ทอง" },
+      { branches: [11, 0, 1], element: "น้ำ" }
     ];
 
     const monthSeasonElements = {
@@ -1036,6 +1050,14 @@
       };
     }
 
+    function findFullGroupMembers(pillars, group) {
+      const found = pillars
+        .map((pillar, index) => ({ index, branch: pillar.gz.branch }))
+        .filter(item => group.branches.includes(item.branch));
+      const unique = group.branches.map(branch => found.find(item => item.branch === branch));
+      return unique.every(Boolean) ? unique : [];
+    }
+
     function findBranchRelations(pillars, monthBranch = getMonthBranch(pillars)) {
       const relations = [];
       for (let i = 0; i < pillars.length; i++) {
@@ -1085,6 +1107,21 @@
               });
             }
           }
+        }
+      });
+      meetingGroups.forEach(group => {
+        const members = findFullGroupMembers(pillars, group);
+        if (members.length === 3) {
+          addUniqueRelation(relations, {
+            scope: "branch",
+            type: "meeting",
+            from: members[0].index,
+            to: members[1].index,
+            a: members[0].branch,
+            b: members[1].branch,
+            members,
+            note: `三会ธาตุ${group.element}`
+          });
         }
       });
       return relations;
@@ -1181,6 +1218,31 @@
         }
       });
 
+      meetingGroups.forEach(group => {
+        if (!group.branches.includes(luckItem.gz.branch)) return;
+        const natalMatches = result.pillars
+          .map((pillar, index) => ({ index, branch: pillar.gz.branch, pillar: pillar.th }))
+          .filter(item => item.branch !== luckItem.gz.branch && group.branches.includes(item.branch));
+        const uniqueNatalMatches = natalMatches
+          .filter((item, index, arr) => arr.findIndex(other => other.branch === item.branch) === index);
+        const coveredBranches = new Set([luckItem.gz.branch, ...uniqueNatalMatches.map(item => item.branch)]);
+        if (coveredBranches.size === 3) {
+          add({
+            scope: "branch",
+            type: "meeting",
+            from: -1,
+            to: uniqueNatalMatches[0].index,
+            a: luckItem.gz.branch,
+            b: uniqueNatalMatches[0].branch,
+            note: `三会ธาตุ${group.element}`,
+            members: [
+              { branch: luckItem.gz.branch, pillar: "รอบดวง" },
+              ...uniqueNatalMatches
+            ]
+          });
+        }
+      });
+
       return relations;
     }
 
@@ -1191,16 +1253,17 @@
         return;
       }
       list.innerHTML = relations.map(rel => {
+        const isGroupRelation = rel.type === "trine" || rel.type === "meeting";
         const style = relationStyles[rel.type];
         const from = result.pillars[rel.from];
         const to = result.pillars[rel.to];
         const scopeText = rel.scope === "stem" ? "ราศีบน 天干" : "ราศีล่าง 地支";
-        const detail = rel.type === "trine"
+        const detail = isGroupRelation
           ? `${rel.members.map(member => branchName(member.branch)).join(" + ")} · ${rel.note}`
           : rel.self
           ? `${branchName(rel.a)} ซ้ำกัน เป็น自刑`
           : `${rel.scope === "stem" ? stemName(rel.a) : branchName(rel.a)} ↔ ${rel.scope === "stem" ? stemName(rel.b) : branchName(rel.b)}${rel.note ? ` · ${rel.note}` : ""}`;
-        const heading = rel.type === "trine"
+        const heading = isGroupRelation
           ? `${style.th} ${style.cn}: ${rel.members.map(member => result.pillars[member.index].th).join(" + ")}`
           : `${style.th} ${style.cn}: ${from.th} - ${to.th}`;
         return `
@@ -1224,7 +1287,7 @@
       if (!relations.length || !mapRect.width || !mapRect.height) return;
 
       relations.forEach((rel, index) => {
-        if (rel.type === "trine" && rel.members) {
+        if ((rel.type === "trine" || rel.type === "meeting") && rel.members) {
           const style = relationStyles[rel.type];
           const points = rel.members.map(member => {
             const el = branchMarkers[member.index];
@@ -1421,7 +1484,7 @@
           ? `<div class="luck-relations">${relations.map(rel => {
             const style = relationStyles[rel.type];
             const source = rel.scope === "stem" ? "ราศีบน" : "ราศีล่าง";
-            const pair = rel.type === "trine"
+            const pair = (rel.type === "trine" || rel.type === "meeting")
               ? rel.members.map(member => member.pillar === "รอบดวง" ? branchName(member.branch) : `${branchName(member.branch)}(${member.pillar})`).join(" + ")
               : `${rel.scope === "stem" ? stemName(rel.a) : branchName(rel.a)} → ${rel.scope === "stem" ? stemName(rel.b) : branchName(rel.b)}(${rel.pillar})`;
             return `
