@@ -380,6 +380,7 @@
     .rel-trine { border-left-color: #0f766e; background: #f0fdfa; }
     .rel-partial { border-left-color: #8a949f; background: #f8fafc; }
     .rel-meeting { border-left-color: #0e7490; background: #ecfeff; }
+    .rel-killer { border-left-color: #991b1b; background: #fff7ed; }
 
     .wood { color: var(--wood); }
     .fire { color: var(--fire); }
@@ -587,6 +588,10 @@
               <strong>ชง 冲</strong>
               <span>แรงปะทะหรือแรงเปลี่ยน มักอ่านเป็นการกระทบ เคลื่อนไหว แตกต่าง หรือเรื่องที่ถูกกระตุ้นชัด</span>
             </div>
+            <div class="meaning-item rel-killer">
+              <strong>พิฆาต 七杀</strong>
+              <span>ราศีบนที่เป็นชิกสัวะเมื่อเทียบกับ Day Master เป็นแรงกด อำนาจ การแข่งขัน หรือโจทย์ที่บังคับให้เด็ดขาด</span>
+            </div>
             <div class="meaning-item rel-punishment">
               <strong>เฮ้ง 刑</strong>
               <span>แรงกดดัน บีบคั้น ขัดกันภายใน หรือเรื่องที่สร้างความอึดอัดและต้องจัดการอย่างระวัง</span>
@@ -630,12 +635,13 @@
           </div>
           <div class="relation-board">
             <div class="relation-title">
-              <span>ความสัมพันธ์地支</span>
-              <span>ชง · เฮ้ง · ไห่ · ผั๊วะ · ฮะ · ครึ่งภาคี · ซาฮะ · ซาฮวย</span>
+              <span>ความสัมพันธ์ราศีบน/ล่าง</span>
+              <span>ชง · พิฆาต · เฮ้ง · ไห่ · ผั๊วะ · ฮะ · ครึ่งภาคี · ซาฮะ · ซาฮวย</span>
             </div>
             <div class="relation-filters" id="relationFilters">
               <label class="toggle"><input type="checkbox" id="relationAll" checked>ทั้งหมด</label>
               <label class="toggle"><input type="checkbox" class="relation-filter" value="clash" checked>ชง</label>
+              <label class="toggle"><input type="checkbox" class="relation-filter" value="killer" checked>พิฆาต</label>
               <label class="toggle"><input type="checkbox" class="relation-filter" value="punishment" checked>เฮ้ง</label>
               <label class="toggle"><input type="checkbox" class="relation-filter" value="harm" checked>ไห่</label>
               <label class="toggle"><input type="checkbox" class="relation-filter" value="break" checked>ผั๊วะ</label>
@@ -739,6 +745,7 @@
     };
     const relationStyles = {
       clash: { th: "ชง", cn: "冲", cls: "rel-clash", color: "#c2412d" },
+      killer: { th: "พิฆาต", cn: "七杀", cls: "rel-killer", color: "#991b1b" },
       punishment: { th: "เฮ้ง", cn: "刑", cls: "rel-punishment", color: "#7c3aed" },
       harm: { th: "ไห่", cn: "害", cls: "rel-harm", color: "#d97706" },
       break: { th: "ผั๊วะ", cn: "破", cls: "rel-break", color: "#146c66" },
@@ -763,11 +770,7 @@
       ["combine", 1, 6, "天干五合ธาตุทอง"],
       ["combine", 2, 7, "天干五合ธาตุน้ำ"],
       ["combine", 3, 8, "天干五合ธาตุไม้"],
-      ["combine", 4, 9, "天干五合ธาตุไฟ"],
-      ["clash", 0, 6, "天干冲"],
-      ["clash", 1, 7, "天干冲"],
-      ["clash", 2, 8, "天干冲"],
-      ["clash", 3, 9, "天干冲"]
+      ["combine", 4, 9, "天干五合ธาตุไฟ"]
     ];
 
     const trineGroups = [
@@ -1129,6 +1132,8 @@
 
     function findStemRelations(pillars) {
       const relations = [];
+      const dayIndex = pillars.findIndex(pillar => pillar.label === "Day Pillar");
+      const dayStem = pillars[dayIndex].gz.stem;
       for (let i = 0; i < pillars.length; i++) {
         for (let j = i + 1; j < pillars.length; j++) {
           const a = pillars[i].gz.stem;
@@ -1139,6 +1144,17 @@
             }
           });
         }
+        if (i !== dayIndex && tenGod(dayStem, pillars[i].gz.stem) === "七杀") {
+          addUniqueRelation(relations, {
+            scope: "stem",
+            type: "killer",
+            from: dayIndex,
+            to: i,
+            a: dayStem,
+            b: pillars[i].gz.stem,
+            note: "ราศีบนนี้เป็นชิกสัวะของ Day Master"
+          });
+        }
       }
       return relations;
     }
@@ -1147,6 +1163,21 @@
       const relations = [];
       const add = relation => addUniqueRelation(relations, relation);
       const monthBranch = getMonthBranch(result.pillars);
+      const dayPillarIndex = result.pillars.findIndex(pillar => pillar.label === "Day Pillar");
+      const dayStem = result.pillars[dayPillarIndex].gz.stem;
+
+      if (tenGod(dayStem, luckItem.gz.stem) === "七杀") {
+        add({
+          scope: "stem",
+          type: "killer",
+          from: -1,
+          to: dayPillarIndex,
+          a: luckItem.gz.stem,
+          b: dayStem,
+          note: "ราศีบนรอบดวงเป็นชิกสัวะของ Day Master",
+          pillar: "เสาวัน"
+        });
+      }
 
       result.pillars.forEach((pillar, index) => {
         stemRelations.forEach(([type, first, second, note]) => {
@@ -1260,11 +1291,15 @@
         const scopeText = rel.scope === "stem" ? "ราศีบน 天干" : "ราศีล่าง 地支";
         const detail = isGroupRelation
           ? `${rel.members.map(member => branchName(member.branch)).join(" + ")} · ${rel.note}`
+          : rel.type === "killer"
+          ? `${stemName(rel.a)} → ${stemName(rel.b)}${rel.note ? ` · ${rel.note}` : ""}`
           : rel.self
           ? `${branchName(rel.a)} ซ้ำกัน เป็น自刑`
           : `${rel.scope === "stem" ? stemName(rel.a) : branchName(rel.a)} ↔ ${rel.scope === "stem" ? stemName(rel.b) : branchName(rel.b)}${rel.note ? ` · ${rel.note}` : ""}`;
         const heading = isGroupRelation
           ? `${style.th} ${style.cn}: ${rel.members.map(member => result.pillars[member.index].th).join(" + ")}`
+          : rel.type === "killer"
+          ? `${style.th} ${style.cn}: ${from.th} - ${to.th}`
           : `${style.th} ${style.cn}: ${from.th} - ${to.th}`;
         return `
           <div class="relation-item ${style.cls}">
