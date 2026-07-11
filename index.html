@@ -378,6 +378,7 @@
     .rel-break { border-left-color: #146c66; }
     .rel-combine { border-left-color: #2f7d4f; }
     .rel-trine { border-left-color: #0f766e; background: #f0fdfa; }
+    .rel-partial { border-left-color: #8a949f; background: #f8fafc; }
 
     .wood { color: var(--wood); }
     .fire { color: var(--fire); }
@@ -601,6 +602,10 @@
               <strong>ฮะ 合</strong>
               <span>แรงดึงดูด ผูกพัน ร่วมมือ หรือเกิดเงื่อนไขให้ธาตุเปลี่ยน แต่ต้องดูฤดูกาลและกำลังธาตุประกอบ</span>
             </div>
+            <div class="meaning-item rel-partial">
+              <strong>ครึ่งภาคี</strong>
+              <span>มีเค้าการรวมกลุ่ม แต่จะนับว่าฮะสำเร็จเมื่อฐานเดือนหรือฤดูกาลสนับสนุนธาตุนั้น</span>
+            </div>
             <div class="meaning-item rel-trine">
               <strong>ซาฮะ 三合</strong>
               <span>สามประสานครบชุด เป็นแรงรวมกลุ่มที่ชัดกว่าฮะรายคู่ มักเน้นทิศทางธาตุของกลุ่มนั้น</span>
@@ -621,7 +626,7 @@
           <div class="relation-board">
             <div class="relation-title">
               <span>ความสัมพันธ์地支</span>
-              <span>ชง · เฮ้ง · ไห่ · ผั๊วะ · ฮะ · ซาฮะ</span>
+              <span>ชง · เฮ้ง · ไห่ · ผั๊วะ · ฮะ · ครึ่งภาคี · ซาฮะ</span>
             </div>
             <div class="relation-filters" id="relationFilters">
               <label class="toggle"><input type="checkbox" id="relationAll" checked>ทั้งหมด</label>
@@ -630,6 +635,7 @@
               <label class="toggle"><input type="checkbox" class="relation-filter" value="harm" checked>ไห่</label>
               <label class="toggle"><input type="checkbox" class="relation-filter" value="break" checked>ผั๊วะ</label>
               <label class="toggle"><input type="checkbox" class="relation-filter" value="combine" checked>ฮะ</label>
+              <label class="toggle"><input type="checkbox" class="relation-filter" value="partialCombine" checked>ครึ่งภาคี</label>
               <label class="toggle"><input type="checkbox" class="relation-filter" value="trine" checked>ซาฮะ</label>
             </div>
             <div class="relation-list" id="relationList"></div>
@@ -731,6 +737,7 @@
       harm: { th: "ไห่", cn: "害", cls: "rel-harm", color: "#d97706" },
       break: { th: "ผั๊วะ", cn: "破", cls: "rel-break", color: "#146c66" },
       combine: { th: "ฮะ", cn: "合", cls: "rel-combine", color: "#2f7d4f" },
+      partialCombine: { th: "ครึ่งภาคี", cn: "", cls: "rel-partial", color: "#8a949f" },
       trine: { th: "ซาฮะ", cn: "三合", cls: "rel-trine", color: "#0f766e" }
     };
 
@@ -762,6 +769,13 @@
       { branches: [2, 6, 10], element: "ไฟ" },
       { branches: [5, 9, 1], element: "ทอง" }
     ];
+
+    const monthSeasonElements = {
+      2: "ไม้", 3: "ไม้", 4: "ไม้",
+      5: "ไฟ", 6: "ไฟ", 7: "ไฟ",
+      8: "ทอง", 9: "ทอง", 10: "ทอง",
+      11: "น้ำ", 0: "น้ำ", 1: "น้ำ"
+    };
 
     const selfPunishmentBranches = new Set([4, 6, 9, 11]);
 
@@ -1005,7 +1019,24 @@
       if (!relations.some(item => relationKey(item) === key)) relations.push(relation);
     }
 
-    function findBranchRelations(pillars) {
+    function getMonthBranch(pillars) {
+      return pillars.find(pillar => pillar.label === "Month Pillar").gz.branch;
+    }
+
+    function supportedByMonthSeason(monthBranch, element) {
+      return monthSeasonElements[monthBranch] === element;
+    }
+
+    function halfTrineRelationTypeAndNote(group, monthBranch) {
+      const supported = supportedByMonthSeason(monthBranch, group.element);
+      const monthText = branchName(monthBranch);
+      return {
+        type: supported ? "combine" : "partialCombine",
+        note: `ครึ่งภาคีธาตุ${group.element} · ฐานเดือน${monthText}${supported ? "หนุน สำเร็จ" : "ไม่หนุน ยังไม่สำเร็จ"}`
+      };
+    }
+
+    function findBranchRelations(pillars, monthBranch = getMonthBranch(pillars)) {
       const relations = [];
       for (let i = 0; i < pillars.length; i++) {
         for (let j = i + 1; j < pillars.length; j++) {
@@ -1045,12 +1076,12 @@
               if (found[i].branch === found[j].branch) continue;
               addUniqueRelation(relations, {
                 scope: "branch",
-                type: "combine",
+                type: isFull ? "combine" : halfTrineRelationTypeAndNote(group, monthBranch).type,
                 from: found[i].index,
                 to: found[j].index,
                 a: found[i].branch,
                 b: found[j].branch,
-                note: `${isFull ? "三合" : "ครึ่ง三合"}ธาตุ${group.element}`
+                note: isFull ? `三合ธาตุ${group.element}` : halfTrineRelationTypeAndNote(group, monthBranch).note
               });
             }
           }
@@ -1078,6 +1109,7 @@
     function findLuckNatalRelations(result, luckItem) {
       const relations = [];
       const add = relation => addUniqueRelation(relations, relation);
+      const monthBranch = getMonthBranch(result.pillars);
 
       result.pillars.forEach((pillar, index) => {
         stemRelations.forEach(([type, first, second, note]) => {
@@ -1119,14 +1151,15 @@
         const isFull = seenBranches.size >= 2;
 
         natalMatches.forEach(match => {
+          const halfTrine = halfTrineRelationTypeAndNote(group, monthBranch);
           add({
             scope: "branch",
-            type: "combine",
+            type: isFull ? "combine" : halfTrine.type,
             from: -1,
             to: match.index,
             a: luckItem.gz.branch,
             b: match.branch,
-            note: `${isFull ? "三合" : "ครึ่ง三合"}ธาตุ${group.element}`,
+            note: isFull ? `三合ธาตุ${group.element}` : halfTrine.note,
             pillar: match.pillar
           });
         });
