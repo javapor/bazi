@@ -517,6 +517,41 @@
       white-space: nowrap;
     }
 
+    .export-panel {
+      display: grid;
+      gap: 10px;
+    }
+
+    .export-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .export-actions button {
+      width: auto;
+      min-width: 128px;
+    }
+
+    .export-status {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .export-text {
+      width: 100%;
+      min-height: 220px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #1f2a37;
+      background: #fbfcfe;
+      box-sizing: border-box;
+    }
+
     .track {
       height: 12px;
       background: #edf1f5;
@@ -572,6 +607,8 @@
         grid-column: 1 / -1;
         grid-row: 2;
       }
+      .export-actions button { width: 100%; }
+      .export-text { min-height: 260px; font-size: 11px; }
     }
   </style>
 </head>
@@ -689,6 +726,17 @@
         <section class="panel section">
           <h2>สมดุลธาตุ</h2>
           <div class="element-bars" id="elementBars"></div>
+        </section>
+
+        <section class="panel section">
+          <h2>Export Data</h2>
+          <div class="export-panel">
+            <div class="export-actions">
+              <button type="button" id="copyExport">Copy Text</button>
+              <span class="export-status" id="exportStatus">พร้อมคัดลอกไปถาม AI</span>
+            </div>
+            <textarea class="export-text" id="exportText" readonly></textarea>
+          </div>
         </section>
       </div>
     </div>
@@ -1529,6 +1577,18 @@
     }
 
     function renderElements(result) {
+      const counts = calculateElementCounts(result);
+      const max = Math.max(...Object.values(counts), 1);
+      document.getElementById("elementBars").innerHTML = elementKeys.map(key => `
+        <div class="bar-row">
+          <strong>${key}</strong>
+          <div class="track"><div class="fill ${elementClass[key]}" style="width:${(counts[key] / max) * 100}%"></div></div>
+          <span>${counts[key].toFixed(1)}</span>
+        </div>
+      `).join("");
+    }
+
+    function calculateElementCounts(result) {
       const counts = Object.fromEntries(elementKeys.map(k => [k, 0]));
       result.pillars.forEach(pillar => {
         const stem = stems[pillar.gz.stem];
@@ -1539,14 +1599,133 @@
           counts[stems[stemIndex].element] += pos === 0 ? 0.45 : 0.25;
         });
       });
-      const max = Math.max(...Object.values(counts), 1);
-      document.getElementById("elementBars").innerHTML = elementKeys.map(key => `
-        <div class="bar-row">
-          <strong>${key}</strong>
-          <div class="track"><div class="fill ${elementClass[key]}" style="width:${(counts[key] / max) * 100}%"></div></div>
-          <span>${counts[key].toFixed(1)}</span>
-        </div>
-      `).join("");
+      return counts;
+    }
+
+    function formatStemForExport(stemIndex) {
+      const stem = stems[stemIndex];
+      return `${stem.han} ${stem.th} (${stem.element}${stem.yinYang})`;
+    }
+
+    function formatBranchForExport(branchIndex) {
+      const branch = branches[branchIndex];
+      return `${branch.han} ${branch.th} (${branch.element}, ${branch.animal})`;
+    }
+
+    function relationTextForExport(result, rel) {
+      const isGroupRelation = rel.type === "trine" || rel.type === "meeting";
+      const style = relationStyles[rel.type];
+      const scopeText = rel.scope === "stem" ? "ราศีบน" : "ราศีล่าง";
+      if (isGroupRelation) {
+        const pillars = rel.members.map(member => `${result.pillars[member.index].th}:${branchName(member.branch)}`).join(" + ");
+        return `${style.th}${style.cn ? ` ${style.cn}` : ""} (${scopeText}) - ${pillars} - ${rel.note}`;
+      }
+      const from = result.pillars[rel.from];
+      const to = result.pillars[rel.to];
+      const pair = rel.type === "killer"
+        ? `${stemName(rel.a)} -> ${stemName(rel.b)}`
+        : rel.self
+        ? `${branchName(rel.a)} ซ้ำกัน`
+        : `${rel.scope === "stem" ? stemName(rel.a) : branchName(rel.a)} <-> ${rel.scope === "stem" ? stemName(rel.b) : branchName(rel.b)}`;
+      return `${style.th}${style.cn ? ` ${style.cn}` : ""} (${scopeText}) - ${from.th} กับ ${to.th}: ${pair}${rel.note ? ` - ${rel.note}` : ""}`;
+    }
+
+    function luckRelationTextForExport(rel) {
+      const style = relationStyles[rel.type];
+      if (rel.type === "trine" || rel.type === "meeting") {
+        const pair = rel.members.map(member => member.pillar === "รอบดวง" ? branchName(member.branch) : `${branchName(member.branch)}(${member.pillar})`).join(" + ");
+        return `${style.th}${style.cn ? ` ${style.cn}` : ""}: ${pair}${rel.note ? ` - ${rel.note}` : ""}`;
+      }
+      const pair = rel.type === "killer" && rel.luckSide === "killer"
+        ? `${stemName(rel.a)}(${rel.pillar}) -> ${stemName(rel.b)}(รอบดวง)`
+        : rel.type === "killer" && rel.luckSide === "source"
+        ? `${stemName(rel.a)}(รอบดวง) -> ${stemName(rel.b)}(${rel.pillar})`
+        : `${rel.scope === "stem" ? stemName(rel.a) : branchName(rel.a)}(รอบดวง) -> ${rel.scope === "stem" ? stemName(rel.b) : branchName(rel.b)}(${rel.pillar})`;
+      return `${style.th}${style.cn ? ` ${style.cn}` : ""}: ${pair}${rel.note ? ` - ${rel.note}` : ""}`;
+    }
+
+    function buildExportText(result, gender, zone) {
+      const dayStemIndex = result.pillars.find(p => p.label === "Day Pillar").gz.stem;
+      const counts = calculateElementCounts(result);
+      const relations = [
+        ...findStemRelations(result.pillars),
+        ...findBranchRelations(result.pillars)
+      ];
+
+      const lines = [
+        "ข้อมูล Bazi สำหรับนำไปถาม AI",
+        "",
+        "คำขอแนะนำ: ช่วยอ่านดวงนี้จากข้อมูลด้านล่าง โดยเน้น Day Master, กิ่งซ่อน, สมดุลธาตุ, ความสัมพันธ์ของราศีบน/ล่าง และรอบดวง 10 ปี",
+        "",
+        "ข้อมูลเกิด",
+        `- วันเวลาเกิด: ${formatDate(result.birth, zone)} เวลาไทย`,
+        `- เพศ: ${gender === "male" ? "ชาย" : "หญิง"}`,
+        `- ปีสุริยคติ Bazi: ${result.solarYear}`,
+        `- เดือน Bazi เริ่มจาก: ${result.prevJie.name} ${result.prevJie.th} (${formatDate(result.prevJie.date, zone)})`,
+        `- รอบดวง: ${result.direction}, เริ่มราว ${result.startAge.toFixed(1)} ปี`,
+        "",
+        "สี่เสาหลัก เรียง ยาม / วัน / เดือน / ปี"
+      ];
+
+      result.pillars.forEach(pillar => {
+        const stem = formatStemForExport(pillar.gz.stem);
+        const branch = formatBranchForExport(pillar.gz.branch);
+        const stemGod = tenGodLabel(dayStemIndex, pillar.gz.stem);
+        const hidden = branches[pillar.gz.branch].hidden.map((stemIndex, pos) => {
+          const weight = pos === 0 ? "ชี่หลัก" : "ชี่รอง";
+          return `${formatStemForExport(stemIndex)} = ${tenGodLabel(dayStemIndex, stemIndex)} (${weight})`;
+        }).join("; ");
+        lines.push(`- ${pillar.th}: ${stem} / ${branch}; จับซิ้งราศีบน=${stemGod}; กิ่งซ่อน: ${hidden}`);
+      });
+
+      lines.push("", "สมดุลธาตุโดยประมาณ");
+      elementKeys.forEach(key => lines.push(`- ${key}: ${counts[key].toFixed(1)}`));
+
+      lines.push("", "ความสัมพันธ์ในพื้นดวง");
+      if (relations.length) relations.forEach(rel => lines.push(`- ${relationTextForExport(result, rel)}`));
+      else lines.push("- ไม่พบความสัมพันธ์เด่น");
+
+      lines.push("", "รอบดวง 10 ปี และความสัมพันธ์กับพื้นดวง");
+      result.luck.forEach(item => {
+        const luckRelations = findLuckNatalRelations(result, item);
+        lines.push(`- อายุ ${item.age.toFixed(1)}-${(item.age + 9.9).toFixed(1)}: ${formatStemForExport(item.gz.stem)} / ${formatBranchForExport(item.gz.branch)}`);
+        lines.push(`  5 ปีแรกอ่านราศีบน: ${formatStemForExport(item.gz.stem)}`);
+        lines.push(`  5 ปีหลังอ่านราศีล่าง: ${formatBranchForExport(item.gz.branch)}`);
+        if (luckRelations.length) {
+          luckRelations.forEach(rel => lines.push(`  ความสัมพันธ์: ${luckRelationTextForExport(rel)}`));
+        } else {
+          lines.push("  ความสัมพันธ์: ไม่พบความสัมพันธ์เด่นกับพื้นดวงเดิม");
+        }
+      });
+
+      return lines.join("\n");
+    }
+
+    function renderExportData(result, gender, zone) {
+      const exportText = document.getElementById("exportText");
+      if (!exportText) return;
+      exportText.value = buildExportText(result, gender, zone);
+      document.getElementById("exportStatus").textContent = "พร้อมคัดลอกไปถาม AI";
+    }
+
+    async function copyExportData() {
+      const exportText = document.getElementById("exportText");
+      const status = document.getElementById("exportStatus");
+      if (!exportText || !exportText.value) return;
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(exportText.value);
+        } else {
+          exportText.focus();
+          exportText.select();
+          document.execCommand("copy");
+        }
+        status.textContent = "คัดลอกแล้ว";
+      } catch (error) {
+        exportText.focus();
+        exportText.select();
+        status.textContent = "คัดลอกไม่ได้ ให้กด Cmd+C จากข้อความที่เลือก";
+      }
     }
 
     function renderLuck(result) {
@@ -1613,6 +1792,7 @@
         renderSummary(result, gender, zone);
         renderElements(result);
         renderLuck(result);
+        renderExportData(result, gender, zone);
       } catch (error) {
         errorBox.textContent = error.message;
         errorBox.style.display = "block";
@@ -1635,6 +1815,7 @@
       event.preventDefault();
       renderAll();
     });
+    document.getElementById("copyExport").addEventListener("click", copyExportData);
     document.querySelectorAll("#baziForm input, #baziForm select").forEach(el => el.addEventListener("change", renderAll));
     document.getElementById("relationAll").addEventListener("change", event => {
       document.querySelectorAll(".relation-filter").forEach(input => {
