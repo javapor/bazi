@@ -733,7 +733,7 @@
           <div class="export-panel">
             <div class="export-actions">
               <button type="button" id="copyExport">คัดลอก</button>
-              <span class="export-status" id="exportStatus">พร้อมคัดลอกไปถาม AI</span>
+              <span class="export-status" id="exportStatus">วิธีใช้ กดปุ่มคัดลอก (Copy) แล้วนำข้อมูลไปวาง (Paste) ใน AI Chat ที่ใช้งานเช่น ChatGPT Claude หรือ Gemini</span>
             </div>
             <textarea class="export-text" id="exportText" readonly></textarea>
           </div>
@@ -789,6 +789,7 @@
     const termCache = new Map();
     const elementKeys = ["ไม้", "ไฟ", "ดิน", "ทอง", "น้ำ"];
     const elementClass = { "ไม้": "wood", "ไฟ": "fire", "ดิน": "earth", "ทอง": "metal", "น้ำ": "water" };
+    const exportHelpText = "วิธีใช้ กดปุ่มคัดลอก (Copy) แล้วนำข้อมูลไปวาง (Paste) ใน AI Chat ที่ใช้งานเช่น ChatGPT Claude หรือ Gemini";
     const tenGodMeanings = {
       "比肩": "เพื่อน/ตัวตน",
       "劫财": "คู่แข่ง/แบ่งทรัพย์",
@@ -1705,7 +1706,7 @@
       const exportText = document.getElementById("exportText");
       if (!exportText) return;
       exportText.value = buildExportText(result, gender, zone);
-      document.getElementById("exportStatus").textContent = "พร้อมคัดลอกไปถาม AI";
+      document.getElementById("exportStatus").textContent = exportHelpText;
     }
 
     async function copyExportData() {
