@@ -470,6 +470,30 @@
       font-size: 32px;
     }
 
+    .luck-ten-god {
+      color: #8a949f;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-top: 2px;
+    }
+
+    .luck-hidden {
+      display: grid;
+      gap: 2px;
+      margin-top: 6px;
+      color: #8a949f;
+      font-size: 10px;
+      line-height: 1.3;
+    }
+
+    .luck-hidden span {
+      margin: 0;
+      color: inherit;
+      font-size: inherit;
+      overflow-wrap: anywhere;
+    }
+
     .luck-relations {
       display: grid;
       gap: 6px;
@@ -1635,6 +1659,14 @@
       return `${branch.han} ${branch.th} (${branch.element}, ${branch.animal})`;
     }
 
+    function hiddenGodsForBranch(dayStemIndex, branchIndex) {
+      return branches[branchIndex].hidden.map((stemIndex, pos) => ({
+        stemIndex,
+        god: tenGodLabel(dayStemIndex, stemIndex),
+        weight: pos === 0 ? "ชี่หลัก" : "ชี่รอง"
+      }));
+    }
+
     function relationTextForExport(result, rel) {
       const isGroupRelation = rel.type === "trine" || rel.type === "meeting";
       const style = relationStyles[rel.type];
@@ -1711,9 +1743,14 @@
       lines.push("", "รอบดวง 10 ปี และความสัมพันธ์กับพื้นดวง");
       result.luck.forEach(item => {
         const luckRelations = findLuckNatalRelations(result, item);
+        const luckStemGod = tenGodLabel(dayStemIndex, item.gz.stem);
+        const luckBranchMainGod = tenGodLabel(dayStemIndex, branches[item.gz.branch].hidden[0]);
+        const luckHidden = hiddenGodsForBranch(dayStemIndex, item.gz.branch)
+          .map(hidden => `${formatStemForExport(hidden.stemIndex)} = ${hidden.god} (${hidden.weight})`)
+          .join("; ");
         lines.push(`- อายุ ${item.age.toFixed(1)}-${(item.age + 9.9).toFixed(1)}: ${formatStemForExport(item.gz.stem)} / ${formatBranchForExport(item.gz.branch)}`);
-        lines.push(`  5 ปีแรกอ่านราศีบน: ${formatStemForExport(item.gz.stem)}`);
-        lines.push(`  5 ปีหลังอ่านราศีล่าง: ${formatBranchForExport(item.gz.branch)}`);
+        lines.push(`  5 ปีแรกอ่านราศีบน: ${formatStemForExport(item.gz.stem)} = ${luckStemGod}`);
+        lines.push(`  5 ปีหลังอ่านราศีล่าง: ${formatBranchForExport(item.gz.branch)}; จับซิ้งชี่หลัก=${luckBranchMainGod}; กิ่งซ่อน: ${luckHidden}`);
         if (luckRelations.length) {
           luckRelations.forEach(rel => lines.push(`  ความสัมพันธ์: ${luckRelationTextForExport(rel)}`));
         } else {
@@ -1752,9 +1789,16 @@
     }
 
     function renderLuck(result) {
+      const dayStemIndex = result.pillars.find(p => p.label === "Day Pillar").gz.stem;
       document.getElementById("luckGrid").innerHTML = result.luck.map(item => {
         const stem = stems[item.gz.stem];
         const branch = branches[item.gz.branch];
+        const stemGod = tenGodLabel(dayStemIndex, item.gz.stem);
+        const branchMainGod = tenGodLabel(dayStemIndex, branch.hidden[0]);
+        const hiddenGods = hiddenGodsForBranch(dayStemIndex, item.gz.branch).map(hidden => {
+          const hiddenStem = stems[hidden.stemIndex];
+          return `<span>${hiddenStem.han} ${hiddenStem.th} · ${hidden.god}</span>`;
+        }).join("");
         const firstStart = item.age;
         const firstEnd = item.age + 4.9;
         const secondStart = item.age + 5;
@@ -1787,11 +1831,14 @@
                 <span>${firstStart.toFixed(1)}-${firstEnd.toFixed(1)} ปี</span>
                 <div class="han ${stem.cls}">${stem.han}</div>
                 <div class="meta">ราศีบน · ${stem.element}${stem.yinYang}</div>
+                <div class="luck-ten-god">${stemGod}</div>
               </div>
               <div class="luck-phase">
                 <span>${secondStart.toFixed(1)}-${secondEnd.toFixed(1)} ปี</span>
                 <div class="han ${branch.cls}">${branch.han}</div>
                 <div class="meta">ราศีล่าง · ${branch.element}</div>
+                <div class="luck-ten-god">${branchMainGod}</div>
+                <div class="luck-hidden">${hiddenGods}</div>
               </div>
             </div>
             ${relationHtml}
