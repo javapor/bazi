@@ -269,6 +269,15 @@
       line-height: 1.35;
     }
 
+    .life-stage {
+      color: #8a949f;
+      font-size: 10px;
+      font-weight: 700;
+      text-align: center;
+      line-height: 1.3;
+      margin-top: 2px;
+    }
+
     .hidden {
       padding: 10px;
       font-size: 12px;
@@ -634,6 +643,7 @@
       .chip { width: 100%; padding: 2px 3px; font-size: 9px; white-space: normal; text-align: center; overflow-wrap: anywhere; }
       .chip .ten-god { font-size: 8px; text-align: center; }
       .ten-god { font-size: 8px; }
+      .life-stage { font-size: 8px; }
       .meta { font-size: 8px; line-height: 1.25; overflow-wrap: anywhere; }
       .summary, .luck-grid, .row { grid-template-columns: 1fr; }
       .han { font-size: 30px; }
@@ -857,6 +867,21 @@
       "偏印": "เพียงอิ่ง",
       "正印": "เจียอิ่ง"
     };
+    const lifeStages = [
+      { han: "长生", th: "เชี่ยงแซ" },
+      { han: "沐浴", th: "หมกยก" },
+      { han: "冠带", th: "กวงตั่ว" },
+      { han: "临官", th: "หลิ่มกัว" },
+      { han: "帝旺", th: "ตี่อ่อง" },
+      { han: "衰", th: "ซ่วย" },
+      { han: "病", th: "แป๋" },
+      { han: "死", th: "ซี้" },
+      { han: "墓", th: "บ่อ" },
+      { han: "绝", th: "เจ๊าะ" },
+      { han: "胎", th: "ทอ" },
+      { han: "养", th: "เอี๊ยง" }
+    ];
+    const lifeStageStartBranches = [11, 6, 2, 9, 2, 9, 5, 0, 8, 3];
     const relationStyles = {
       clash: { th: "ชง", cn: "冲", cls: "rel-clash", color: "#c2412d" },
       killer: { th: "พิฆาต", cn: "七杀", cls: "rel-killer", color: "#991b1b" },
@@ -1025,6 +1050,17 @@
       return tenGodTeochew[god];
     }
 
+    function lifeStage(stemIndex, branchIndex) {
+      const start = lifeStageStartBranches[stemIndex];
+      const direction = stemIndex % 2 === 0 ? 1 : -1;
+      return lifeStages[mod((branchIndex - start) * direction, 12)];
+    }
+
+    function lifeStageText(stemIndex, branchIndex) {
+      const stage = lifeStage(stemIndex, branchIndex);
+      return `${stage.th} ${stage.han}`;
+    }
+
     function calculate(value, gender, zone) {
       const local = localParts(value, zone);
       const birth = new Date(local.utcMs);
@@ -1107,6 +1143,7 @@
         }).join("");
         const stemGod = tenGodLabel(dayStemIndex, pillar.gz.stem);
         const branchMainGod = tenGodLabel(dayStemIndex, branch.hidden[0]);
+        const branchLifeStage = lifeStage(dayStemIndex, pillar.gz.branch);
         return `
           <article class="pillar">
             <div class="pillar-title"><span>${pillar.th}</span><span>${pillar.label}</span></div>
@@ -1120,6 +1157,7 @@
                 <div class="han ${branch.cls}">${branch.han}</div>
                 <div class="meta">${branch.th} · ${branch.element} · ${branch.animal}</div>
                 <div class="ten-god">${branchMainGod}</div>
+                <div class="life-stage">เชี่ยงแซ · ${branchLifeStage.th}</div>
               </div>
               <div class="hidden">
                 <strong>กิ่งซ่อน</strong>
@@ -1742,11 +1780,12 @@
         const stem = formatStemForExport(pillar.gz.stem);
         const branch = formatBranchForExport(pillar.gz.branch);
         const stemGod = tenGodLabel(dayStemIndex, pillar.gz.stem);
+        const branchLifeStage = lifeStageText(dayStemIndex, pillar.gz.branch);
         const hidden = branches[pillar.gz.branch].hidden.map((stemIndex, pos) => {
           const weight = pos === 0 ? "ชี่หลัก" : "ชี่รอง";
           return `${formatStemForExport(stemIndex)} = ${tenGodLabel(dayStemIndex, stemIndex)} (${weight})`;
         }).join("; ");
-        lines.push(`- ${pillar.th}: ${stem} / ${branch}; จับซิ้งราศีบน=${stemGod}; กิ่งซ่อน: ${hidden}`);
+        lines.push(`- ${pillar.th}: ${stem} / ${branch}; จับซิ้งราศีบน=${stemGod}; เชี่ยงแซของ Day Master ที่ฐานนี้=${branchLifeStage}; กิ่งซ่อน: ${hidden}`);
       });
 
       lines.push("", "สมดุลธาตุโดยประมาณ");
@@ -1761,12 +1800,13 @@
         const luckRelations = findLuckNatalRelations(result, item);
         const luckStemGod = tenGodLabel(dayStemIndex, item.gz.stem);
         const luckBranchMainGod = tenGodLabel(dayStemIndex, branches[item.gz.branch].hidden[0]);
+        const luckLifeStage = lifeStageText(item.gz.stem, item.gz.branch);
         const luckHidden = hiddenGodsForBranch(dayStemIndex, item.gz.branch)
           .map(hidden => `${formatStemForExport(hidden.stemIndex)} = ${hidden.god} (${hidden.weight})`)
           .join("; ");
         lines.push(`- อายุ ${item.age.toFixed(1)}-${(item.age + 9.9).toFixed(1)}: ${formatStemForExport(item.gz.stem)} / ${formatBranchForExport(item.gz.branch)}`);
         lines.push(`  5 ปีแรกอ่านราศีบน: ${formatStemForExport(item.gz.stem)} = ${luckStemGod}`);
-        lines.push(`  5 ปีหลังอ่านราศีล่าง: ${formatBranchForExport(item.gz.branch)}; จับซิ้งชี่หลัก=${luckBranchMainGod}; กิ่งซ่อน: ${luckHidden}`);
+        lines.push(`  5 ปีหลังอ่านราศีล่าง: ${formatBranchForExport(item.gz.branch)}; จับซิ้งชี่หลัก=${luckBranchMainGod}; เชี่ยงแซของราศีบนวัยจร=${luckLifeStage}; กิ่งซ่อน: ${luckHidden}`);
         if (luckRelations.length) {
           luckRelations.forEach(rel => lines.push(`  ความสัมพันธ์: ${luckRelationTextForExport(rel)}`));
         } else {
@@ -1811,6 +1851,7 @@
         const branch = branches[item.gz.branch];
         const stemGod = tenGodLabel(dayStemIndex, item.gz.stem);
         const branchMainGod = tenGodLabel(dayStemIndex, branch.hidden[0]);
+        const luckLifeStage = lifeStage(item.gz.stem, item.gz.branch);
         const hiddenGods = hiddenGodsForBranch(dayStemIndex, item.gz.branch).map(hidden => {
           const hiddenStem = stems[hidden.stemIndex];
           return `<span>${hiddenStem.han} ${hiddenStem.th} · ${hidden.god}</span>`;
@@ -1857,6 +1898,7 @@
                 <div class="han ${branch.cls}">${branch.han}</div>
                 <div class="meta">ราศีล่าง · ${branch.element}</div>
                 <div class="luck-ten-god">${branchMainGod}</div>
+                <div class="life-stage">เชี่ยงแซ · ${luckLifeStage.th}</div>
                 <div class="luck-hidden">${hiddenGods}</div>
               </div>
             </div>
