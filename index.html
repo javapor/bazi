@@ -1831,9 +1831,12 @@
               : rel.type === "killer" && rel.luckSide === "killed"
               ? `${stemName(rel.a)}(${rel.pillar}) → ${stemName(rel.b)}(รอบดวง)`
               : `${rel.scope === "stem" ? stemName(rel.a) : branchName(rel.a)} → ${rel.scope === "stem" ? stemName(rel.b) : branchName(rel.b)}(${rel.pillar})`;
+            const heading = rel.type === "killer" && rel.luckSide === "killed"
+              ? `${style.th} พื้นดวง → ${source}`
+              : `${style.th} ${source} → พื้นดวง`;
             return `
               <div class="luck-relation ${style.cls}">
-                <strong>${style.th} ${source} → พื้นดวง</strong>
+                <strong>${heading}</strong>
                 <span>${pair}${rel.note ? ` · ${rel.note}` : ""}</span>
               </div>
             `;
