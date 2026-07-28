@@ -189,7 +189,9 @@
     .pillars {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
+      grid-template-rows: auto auto auto auto;
+      column-gap: 12px;
+      row-gap: 0;
     }
 
     .pillar-map {
@@ -221,6 +223,9 @@
       background: #fff;
       overflow: hidden;
       min-width: 210px;
+      display: grid;
+      grid-row: span 4;
+      grid-template-rows: subgrid;
     }
 
     .pillar-title {
@@ -235,9 +240,7 @@
     }
 
     .pillar-body {
-      display: grid;
-      grid-template-columns: 1fr;
-      min-height: 210px;
+      display: contents;
     }
 
     .symbol {
@@ -662,7 +665,7 @@
       .controls, .section { padding: 10px; }
       .results { gap: 14px; }
       .pillar-map { overflow-x: hidden; }
-      .pillars { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+      .pillars { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 4px; row-gap: 0; }
       .pillar { min-width: 0; }
       .pillar-title { justify-content: center; padding: 6px 4px; font-size: 9px; gap: 0; text-align: center; }
       .pillar-title span:last-child { display: none; }
