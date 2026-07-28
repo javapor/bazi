@@ -313,6 +313,26 @@
       font-weight: 700;
     }
 
+    .shensha-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 4px;
+      padding: 7px 8px 0;
+    }
+
+    .shensha-badge {
+      border: 1px solid #d7dee8;
+      border-radius: 999px;
+      background: #f8fafc;
+      color: #5f6c7b;
+      padding: 2px 6px;
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 1.35;
+      white-space: nowrap;
+    }
+
     .relation-board {
       margin-top: 14px;
       border: 1px solid var(--line);
@@ -508,6 +528,12 @@
       overflow-wrap: anywhere;
     }
 
+    .luck .shensha-list {
+      justify-content: flex-start;
+      padding: 0;
+      margin-top: 7px;
+    }
+
     .luck-relations {
       display: grid;
       gap: 6px;
@@ -647,6 +673,8 @@
       .chips { display: grid; grid-template-columns: 1fr; gap: 3px; }
       .chip { width: 100%; padding: 2px 3px; font-size: 9px; white-space: normal; text-align: center; overflow-wrap: anywhere; }
       .chip .ten-god { font-size: 8px; text-align: center; }
+      .shensha-list { gap: 3px; padding: 5px 4px 0; }
+      .shensha-badge { padding: 2px 4px; font-size: 8px; white-space: normal; text-align: center; }
       .ten-god { font-size: 8px; }
       .life-stage { font-size: 8px; padding: 2px 4px; }
       .meta { font-size: 8px; line-height: 1.25; overflow-wrap: anywhere; }
@@ -696,6 +724,9 @@
           </div>
         </div>
         <button type="submit">คำนวณ</button>
+        <label class="toggle" style="margin-top:12px;">
+          <input type="checkbox" id="showShensha" checked>แสดงซิ้งสั๊วะ
+        </label>
         <p class="note">เดือนและปีเปลี่ยนตาม节气 โดยเฉพาะ立春 ไม่ใช่วันที่ 1 มกราคม ส่วนวันเริ่มใหม่ตามเวลา 00:00 ท้องถิ่น</p>
         <div class="meaning-panel">
           <h3>ความหมายเส้นสัมพันธ์</h3>
@@ -887,6 +918,41 @@
       { han: "养", th: "เอี๊ยง" }
     ];
     const lifeStageStartBranches = [11, 6, 2, 9, 2, 9, 5, 0, 8, 3];
+    const shenshaMeta = {
+      tianyi: { th: "เทียนอิก", han: "天乙贵人", note: "ผู้ใหญ่ช่วย คนอุปถัมภ์" },
+      wenchang: { th: "บุ่งเชียง", han: "文昌", note: "การเรียน เอกสาร ความคิด" },
+      taohua: { th: "ท้อฮวย", han: "桃花", note: "เสน่ห์ ความนิยม ความสัมพันธ์" },
+      yima: { th: "เอี๊ยม่า", han: "驿马", note: "เดินทาง เคลื่อนไหว เปลี่ยนที่" },
+      huagai: { th: "ฮั้วไก้", han: "华盖", note: "วิชาเฉพาะ ศิลป์ โลกส่วนตัว" },
+      jinyu: { th: "กิมอี้", han: "金舆", note: "ฐานะ ความสบาย ของมีค่า" },
+      lu: { th: "ลกซิ้ง", han: "禄神", note: "วาสนา รายได้ จุดมีกำลัง" },
+      yangren: { th: "หยางเหยิน", han: "羊刃", note: "แรงกล้า เด็ดขาด เสี่ยงปะทะ" },
+      guchen: { th: "กวยซก", han: "孤辰", note: "โดดเดี่ยว พึ่งตัวเอง" },
+      guasu: { th: "ข่วยซิ่ว", han: "寡宿", note: "ความสัมพันธ์ห่าง ใจโดดเดี่ยว" },
+      tianluo: { th: "เทียนล้อ", han: "天罗", note: "ติดขัด พันธนาการ" },
+      diwang: { th: "ตี่บ่วง", han: "地网", note: "ติดขัด พันธนาการ" },
+      kuigang: { th: "ก๊วยกัง", han: "魁罡", note: "แข็ง กล้าชน อำนาจสูง" },
+      hongyan: { th: "อั่งเอี่ยม", han: "红艳", note: "เสน่ห์แรง ความสัมพันธ์หวือหวา" },
+      taiji: { th: "ไต่เก๊ก", han: "太极贵人", note: "ความคิดลึก วิชา ปรัชญา" },
+      tiande: { th: "เทียนเต็ก", han: "天德", note: "บุญช่วย ลดร้ายเป็นเบา" },
+      yuede: { th: "ง้วยเต็ก", han: "月德", note: "เมตตา คุณธรรม คนช่วย" },
+      dahao: { th: "ไต่ห่อ", han: "大耗", note: "รั่วไหล ค่าใช้จ่าย สูญเสีย" },
+      guoyin: { th: "ก๊วยซือ", han: "国印贵人", note: "เอกสาร ตำแหน่ง อำนาจองค์กร" }
+    };
+    const tianyiBranchesByStem = [[1, 7], [0, 8], [11, 9], [11, 9], [1, 7], [0, 8], [1, 7], [6, 2], [5, 3], [5, 3]];
+    const wenchangBranchByStem = [5, 6, 8, 9, 8, 9, 11, 0, 2, 3];
+    const jinyuBranchByStem = [4, 5, 7, 8, 7, 8, 10, 11, 1, 2];
+    const luBranchByStem = [2, 3, 5, 6, 5, 6, 8, 9, 11, 0];
+    const yangrenBranchByStem = [3, 2, 6, 5, 6, 5, 9, 8, 0, 11];
+    const hongyanBranchByStem = [6, 8, 2, 7, 4, 4, 10, 9, 0, 8];
+    const guoyinBranchByStem = [10, 11, 1, 2, 1, 2, 4, 5, 7, 8];
+    const taijiBranchesByStem = [[0, 6], [0, 6], [3, 9], [3, 9], [1, 4, 7, 10], [1, 4, 7, 10], [2, 11], [2, 11], [5, 8], [5, 8]];
+    const tiandeByMonthBranch = [
+      { type: "branch", index: 5 }, { type: "stem", index: 6 }, { type: "stem", index: 3 }, { type: "branch", index: 8 },
+      { type: "stem", index: 8 }, { type: "stem", index: 7 }, { type: "branch", index: 11 }, { type: "stem", index: 0 },
+      { type: "stem", index: 9 }, { type: "branch", index: 2 }, { type: "stem", index: 2 }, { type: "stem", index: 1 }
+    ];
+    const yuedeStemByMonthBranch = [8, 6, 2, 0, 8, 6, 2, 0, 8, 6, 2, 0];
     const relationStyles = {
       clash: { th: "ชง", cn: "冲", cls: "rel-clash", color: "#c2412d" },
       killer: { th: "พิฆาต", cn: "七杀", cls: "rel-killer", color: "#991b1b" },
@@ -1066,6 +1132,95 @@
       return `${stage.th} ${stage.han}`;
     }
 
+    function branchGroupKey(branchIndex) {
+      if ([8, 0, 4].includes(branchIndex)) return "water";
+      if ([2, 6, 10].includes(branchIndex)) return "fire";
+      if ([5, 9, 1].includes(branchIndex)) return "metal";
+      return "wood";
+    }
+
+    function groupBranch(groupKey, type) {
+      const table = {
+        water: { taohua: 9, yima: 2, huagai: 4 },
+        fire: { taohua: 3, yima: 8, huagai: 10 },
+        metal: { taohua: 6, yima: 11, huagai: 1 },
+        wood: { taohua: 0, yima: 5, huagai: 7 }
+      };
+      return table[groupKey][type];
+    }
+
+    function lonelyBranches(branchIndex) {
+      if ([11, 0, 1].includes(branchIndex)) return { guchen: 2, guasu: 10 };
+      if ([2, 3, 4].includes(branchIndex)) return { guchen: 5, guasu: 1 };
+      if ([5, 6, 7].includes(branchIndex)) return { guchen: 8, guasu: 4 };
+      return { guchen: 11, guasu: 7 };
+    }
+
+    function uniqueShensha(items) {
+      const seen = new Set();
+      return items.filter(item => {
+        const key = `${item.key}-${item.ref || ""}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    function findShenshaForPillar(result, pillar, index) {
+      const dayPillar = result.pillars.find(p => p.label === "Day Pillar");
+      const yearPillar = result.pillars.find(p => p.label === "Year Pillar");
+      const monthPillar = result.pillars.find(p => p.label === "Month Pillar");
+      const dayStem = dayPillar.gz.stem;
+      const dayBranch = dayPillar.gz.branch;
+      const yearBranch = yearPillar.gz.branch;
+      const monthBranch = monthPillar.gz.branch;
+      const matches = [];
+      const add = (key, ref) => matches.push({ key, ref, ...shenshaMeta[key] });
+      const branch = pillar.gz.branch;
+      const stem = pillar.gz.stem;
+
+      if (tianyiBranchesByStem[dayStem].includes(branch)) add("tianyi", "ดิถี");
+      if (wenchangBranchByStem[dayStem] === branch) add("wenchang", "ดิถี");
+      if (jinyuBranchByStem[dayStem] === branch) add("jinyu", "ดิถี");
+      if (luBranchByStem[dayStem] === branch) add("lu", "ดิถี");
+      if (yangrenBranchByStem[dayStem] === branch) add("yangren", "ดิถี");
+      if (hongyanBranchByStem[dayStem] === branch) add("hongyan", "ดิถี");
+      if (guoyinBranchByStem[dayStem] === branch) add("guoyin", "ดิถี");
+      if (taijiBranchesByStem[dayStem].includes(branch)) add("taiji", "ดิถี");
+
+      ["วัน", "ปี"].forEach(ref => {
+        const base = ref === "วัน" ? dayBranch : yearBranch;
+        const group = branchGroupKey(base);
+        if (groupBranch(group, "taohua") === branch) add("taohua", ref);
+        if (groupBranch(group, "yima") === branch) add("yima", ref);
+        if (groupBranch(group, "huagai") === branch) add("huagai", ref);
+        const lonely = lonelyBranches(base);
+        if (lonely.guchen === branch) add("guchen", ref);
+        if (lonely.guasu === branch) add("guasu", ref);
+      });
+
+      if ([10, 11].includes(branch)) add("tianluo", "ราศีล่าง");
+      if ([4, 5].includes(branch)) add("diwang", "ราศีล่าง");
+      if (index === result.pillars.findIndex(p => p.label === "Day Pillar") && ["6-4", "6-10", "8-4", "4-10"].includes(`${stem}-${branch}`)) add("kuigang", "เสาวัน");
+      const tiande = tiandeByMonthBranch[monthBranch];
+      if ((tiande.type === "stem" && tiande.index === stem) || (tiande.type === "branch" && tiande.index === branch)) add("tiande", "เดือน");
+      if (yuedeStemByMonthBranch[monthBranch] === stem) add("yuede", "เดือน");
+      if (mod(branch - yearBranch, 12) === 6) add("dahao", "ปี");
+
+      return uniqueShensha(matches);
+    }
+
+    function shenshaBadges(items) {
+      if (!items.length) return "";
+      return `<div class="shensha-list">${items.map(item => `<span class="shensha-badge" title="${item.han} · ${item.note}${item.ref ? ` · เทียบ${item.ref}` : ""}">${item.th}</span>`).join("")}</div>`;
+    }
+
+    function shenshaText(items) {
+      return items.length
+        ? items.map(item => `${item.th} ${item.han}${item.ref ? ` (เทียบ${item.ref})` : ""}: ${item.note}`).join("; ")
+        : "ไม่พบ";
+    }
+
     function calculate(value, gender, zone) {
       const local = localParts(value, zone);
       const birth = new Date(local.utcMs);
@@ -1136,10 +1291,10 @@
       return `${y}-${m}-${d} ${hh}:${mm}`;
     }
 
-    function renderPillars(result) {
+    function renderPillars(result, showShensha) {
       const grid = document.getElementById("pillarGrid");
       const dayStemIndex = result.pillars.find(p => p.label === "Day Pillar").gz.stem;
-      grid.innerHTML = result.pillars.map(pillar => {
+      grid.innerHTML = result.pillars.map((pillar, index) => {
         const stem = stems[pillar.gz.stem];
         const branch = branches[pillar.gz.branch];
         const hidden = branch.hidden.map(i => {
@@ -1149,6 +1304,7 @@
         const stemGod = tenGodLabel(dayStemIndex, pillar.gz.stem);
         const branchMainGod = tenGodLabel(dayStemIndex, branch.hidden[0]);
         const branchLifeStage = lifeStage(dayStemIndex, pillar.gz.branch);
+        const shensha = showShensha ? shenshaBadges(findShenshaForPillar(result, pillar, index)) : "";
         return `
           <article class="pillar">
             <div class="pillar-title"><span>${pillar.th}</span><span>${pillar.label}</span></div>
@@ -1163,6 +1319,7 @@
                 <div class="meta">${branch.th} · ${branch.element} · ${branch.animal}</div>
                 <div class="ten-god">${branchMainGod}</div>
                 <div class="life-stage">เชี่ยงแซ: ${branchLifeStage.th}</div>
+                ${shensha}
               </div>
               <div class="hidden">
                 <strong>กิ่งซ่อน</strong>
@@ -1782,15 +1939,17 @@
       ];
 
       result.pillars.forEach(pillar => {
+        const index = result.pillars.indexOf(pillar);
         const stem = formatStemForExport(pillar.gz.stem);
         const branch = formatBranchForExport(pillar.gz.branch);
         const stemGod = tenGodLabel(dayStemIndex, pillar.gz.stem);
         const branchLifeStage = lifeStageText(dayStemIndex, pillar.gz.branch);
+        const shensha = shenshaText(findShenshaForPillar(result, pillar, index));
         const hidden = branches[pillar.gz.branch].hidden.map((stemIndex, pos) => {
           const weight = pos === 0 ? "ชี่หลัก" : "ชี่รอง";
           return `${formatStemForExport(stemIndex)} = ${tenGodLabel(dayStemIndex, stemIndex)} (${weight})`;
         }).join("; ");
-        lines.push(`- ${pillar.th}: ${stem} / ${branch}; จับซิ้งราศีบน=${stemGod}; เชี่ยงแซของ Day Master ที่ฐานนี้=${branchLifeStage}; กิ่งซ่อน: ${hidden}`);
+        lines.push(`- ${pillar.th}: ${stem} / ${branch}; จับซิ้งราศีบน=${stemGod}; เชี่ยงแซของ Day Master ที่ฐานนี้=${branchLifeStage}; ซิ้งสั๊วะ=${shensha}; กิ่งซ่อน: ${hidden}`);
       });
 
       lines.push("", "สมดุลธาตุโดยประมาณ");
@@ -1806,12 +1965,13 @@
         const luckStemGod = tenGodLabel(dayStemIndex, item.gz.stem);
         const luckBranchMainGod = tenGodLabel(dayStemIndex, branches[item.gz.branch].hidden[0]);
         const luckLifeStage = lifeStageText(item.gz.stem, item.gz.branch);
+        const luckShensha = shenshaText(findShenshaForPillar(result, { gz: item.gz }, -1));
         const luckHidden = hiddenGodsForBranch(dayStemIndex, item.gz.branch)
           .map(hidden => `${formatStemForExport(hidden.stemIndex)} = ${hidden.god} (${hidden.weight})`)
           .join("; ");
         lines.push(`- อายุ ${item.age.toFixed(1)}-${(item.age + 9.9).toFixed(1)}: ${formatStemForExport(item.gz.stem)} / ${formatBranchForExport(item.gz.branch)}`);
         lines.push(`  5 ปีแรกอ่านราศีบน: ${formatStemForExport(item.gz.stem)} = ${luckStemGod}`);
-        lines.push(`  5 ปีหลังอ่านราศีล่าง: ${formatBranchForExport(item.gz.branch)}; จับซิ้งชี่หลัก=${luckBranchMainGod}; เชี่ยงแซของราศีบนวัยจร=${luckLifeStage}; กิ่งซ่อน: ${luckHidden}`);
+        lines.push(`  5 ปีหลังอ่านราศีล่าง: ${formatBranchForExport(item.gz.branch)}; จับซิ้งชี่หลัก=${luckBranchMainGod}; เชี่ยงแซของราศีบนวัยจร=${luckLifeStage}; ซิ้งสั๊วะ=${luckShensha}; กิ่งซ่อน: ${luckHidden}`);
         if (luckRelations.length) {
           luckRelations.forEach(rel => lines.push(`  ความสัมพันธ์: ${luckRelationTextForExport(rel)}`));
         } else {
@@ -1849,7 +2009,7 @@
       }
     }
 
-    function renderLuck(result) {
+    function renderLuck(result, showShensha) {
       const dayStemIndex = result.pillars.find(p => p.label === "Day Pillar").gz.stem;
       document.getElementById("luckGrid").innerHTML = result.luck.map(item => {
         const stem = stems[item.gz.stem];
@@ -1861,6 +2021,7 @@
           const hiddenStem = stems[hidden.stemIndex];
           return `<span>${hiddenStem.han} ${hiddenStem.th} · ${hidden.god}</span>`;
         }).join("");
+        const shensha = showShensha ? shenshaBadges(findShenshaForPillar(result, { gz: item.gz }, -1)) : "";
         const firstStart = item.age;
         const firstEnd = item.age + 4.9;
         const secondStart = item.age + 5;
@@ -1904,6 +2065,7 @@
                 <div class="meta">ราศีล่าง · ${branch.element}</div>
                 <div class="luck-ten-god">${branchMainGod}</div>
                 <div class="life-stage">เชี่ยงแซ: ${luckLifeStage.th}</div>
+                ${shensha}
                 <div class="luck-hidden">${hiddenGods}</div>
               </div>
             </div>
@@ -1919,15 +2081,16 @@
       try {
         const value = document.getElementById("birthDate").value;
         const gender = document.getElementById("gender").value;
+        const showShensha = document.getElementById("showShensha").checked;
         const zone = 7;
         if (!value) return;
         const result = calculate(value, gender, zone);
         window.currentBaziResult = result;
-        renderPillars(result);
+        renderPillars(result, showShensha);
         renderRelations(result);
         renderSummary(result, gender, zone);
         renderElements(result);
-        renderLuck(result);
+        renderLuck(result, showShensha);
         renderExportData(result, gender, zone);
       } catch (error) {
         errorBox.textContent = error.message;
