@@ -80,6 +80,33 @@
       min-width: 0;
     }
 
+    .workspace.controls-collapsed {
+      grid-template-columns: 1fr;
+    }
+
+    .workspace.controls-collapsed .controls {
+      display: none;
+    }
+
+    .edit-controls {
+      display: none;
+      width: auto;
+      min-height: 36px;
+      margin: 0 0 10px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--accent-2);
+      border: 1px solid var(--line);
+      box-shadow: 0 8px 20px rgba(47, 58, 68, .08);
+    }
+
+    .workspace.controls-collapsed .edit-controls {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     .panel {
       background: rgba(255, 255, 255, .86);
       border: 1px solid var(--line);
@@ -691,6 +718,9 @@
 
     @media (max-width: 920px) {
       .workspace { grid-template-columns: 1fr; }
+      .workspace.controls-collapsed { grid-template-columns: 1fr; }
+      .workspace.controls-collapsed .controls { display: block; }
+      .workspace.controls-collapsed .edit-controls { display: none; }
       .controls { position: static; }
       .pillar-map { overflow-x: hidden; }
       .pillars { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 8px; row-gap: 0; }
@@ -763,7 +793,7 @@
       <div class="badge">四柱八字</div>
     </div>
 
-    <div class="workspace">
+    <div class="workspace" id="workspace">
       <form class="panel controls" id="baziForm">
         <div class="field">
           <label for="birthDate">วันเวลาเกิด</label>
@@ -833,6 +863,7 @@
       </form>
 
       <div class="results">
+        <button class="edit-controls" id="editControls" type="button">แก้ข้อมูล</button>
         <div class="error" id="errorBox"></div>
 
         <section class="panel section">
@@ -2145,7 +2176,17 @@
       }).join("");
     }
 
-    function renderAll() {
+    function isDesktopLayout() {
+      return window.matchMedia("(min-width: 921px)").matches;
+    }
+
+    function setControlsCollapsed(collapsed) {
+      const workspace = document.getElementById("workspace");
+      workspace.classList.toggle("controls-collapsed", collapsed && isDesktopLayout());
+      if (window.currentBranchRelations) requestAnimationFrame(() => drawRelationLines(window.currentBranchRelations));
+    }
+
+    function renderAll(options = {}) {
       const errorBox = document.getElementById("errorBox");
       errorBox.style.display = "none";
       try {
@@ -2163,9 +2204,11 @@
         renderElements(result);
         renderLuck(result, showShensha, showLifeStage);
         renderExportData(result, gender, zone);
+        if (options.collapseControls) setControlsCollapsed(true);
       } catch (error) {
         errorBox.textContent = error.message;
         errorBox.style.display = "block";
+        setControlsCollapsed(false);
       }
     }
 
@@ -2183,7 +2226,11 @@
     document.getElementById("gender").value = "male";
     document.getElementById("baziForm").addEventListener("submit", event => {
       event.preventDefault();
-      renderAll();
+      renderAll({ collapseControls: true });
+    });
+    document.getElementById("editControls").addEventListener("click", () => {
+      setControlsCollapsed(false);
+      document.getElementById("birthDate").focus();
     });
     document.getElementById("copyExport").addEventListener("click", copyExportData);
     document.querySelectorAll("#baziForm input, #baziForm select").forEach(el => el.addEventListener("change", renderAll));
@@ -2197,6 +2244,7 @@
       input.addEventListener("change", refreshRelationFilters);
     });
     window.addEventListener("resize", () => {
+      if (!isDesktopLayout()) setControlsCollapsed(false);
       if (window.currentBranchRelations) drawRelationLines(window.currentBranchRelations);
     });
     renderAll();
