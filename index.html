@@ -361,6 +361,13 @@
       margin-bottom: 11px;
     }
 
+    .display-toggles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
     .toggle {
       display: inline-flex;
       align-items: center;
@@ -727,9 +734,14 @@
           </div>
         </div>
         <button type="submit">คำนวณ</button>
-        <label class="toggle" style="margin-top:12px;">
-          <input type="checkbox" id="showShensha" checked>แสดงซิ้งสั๊วะ
-        </label>
+        <div class="display-toggles">
+          <label class="toggle">
+            <input type="checkbox" id="showLifeStage" checked>แสดงเชี่ยงแซ
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="showShensha" checked>แสดงซิ้งสั๊วะ
+          </label>
+        </div>
         <p class="note">เดือนและปีเปลี่ยนตาม节气 โดยเฉพาะ立春 ไม่ใช่วันที่ 1 มกราคม ส่วนวันเริ่มใหม่ตามเวลา 00:00 ท้องถิ่น</p>
         <div class="meaning-panel">
           <h3>ความหมายเส้นสัมพันธ์</h3>
@@ -1294,7 +1306,7 @@
       return `${y}-${m}-${d} ${hh}:${mm}`;
     }
 
-    function renderPillars(result, showShensha) {
+    function renderPillars(result, showShensha, showLifeStage) {
       const grid = document.getElementById("pillarGrid");
       const dayStemIndex = result.pillars.find(p => p.label === "Day Pillar").gz.stem;
       grid.innerHTML = result.pillars.map((pillar, index) => {
@@ -1307,6 +1319,7 @@
         const stemGod = tenGodLabel(dayStemIndex, pillar.gz.stem);
         const branchMainGod = tenGodLabel(dayStemIndex, branch.hidden[0]);
         const branchLifeStage = lifeStage(dayStemIndex, pillar.gz.branch);
+        const lifeStageBadge = showLifeStage ? `<div class="life-stage">เชี่ยงแซ: ${branchLifeStage.th}</div>` : "";
         const shensha = showShensha ? shenshaBadges(findShenshaForPillar(result, pillar, index)) : "";
         return `
           <article class="pillar">
@@ -1321,7 +1334,7 @@
                 <div class="han ${branch.cls}">${branch.han}</div>
                 <div class="meta">${branch.th} · ${branch.element} · ${branch.animal}</div>
                 <div class="ten-god">${branchMainGod}</div>
-                <div class="life-stage">เชี่ยงแซ: ${branchLifeStage.th}</div>
+                ${lifeStageBadge}
                 ${shensha}
               </div>
               <div class="hidden">
@@ -2012,7 +2025,7 @@
       }
     }
 
-    function renderLuck(result, showShensha) {
+    function renderLuck(result, showShensha, showLifeStage) {
       const dayStemIndex = result.pillars.find(p => p.label === "Day Pillar").gz.stem;
       document.getElementById("luckGrid").innerHTML = result.luck.map(item => {
         const stem = stems[item.gz.stem];
@@ -2024,6 +2037,7 @@
           const hiddenStem = stems[hidden.stemIndex];
           return `<span>${hiddenStem.han} ${hiddenStem.th} · ${hidden.god}</span>`;
         }).join("");
+        const lifeStageBadge = showLifeStage ? `<div class="life-stage">เชี่ยงแซ: ${luckLifeStage.th}</div>` : "";
         const shensha = showShensha ? shenshaBadges(findShenshaForPillar(result, { gz: item.gz }, -1)) : "";
         const firstStart = item.age;
         const firstEnd = item.age + 4.9;
@@ -2067,7 +2081,7 @@
                 <div class="han ${branch.cls}">${branch.han}</div>
                 <div class="meta">ราศีล่าง · ${branch.element}</div>
                 <div class="luck-ten-god">${branchMainGod}</div>
-                <div class="life-stage">เชี่ยงแซ: ${luckLifeStage.th}</div>
+                ${lifeStageBadge}
                 ${shensha}
                 <div class="luck-hidden">${hiddenGods}</div>
               </div>
@@ -2084,16 +2098,17 @@
       try {
         const value = document.getElementById("birthDate").value;
         const gender = document.getElementById("gender").value;
+        const showLifeStage = document.getElementById("showLifeStage").checked;
         const showShensha = document.getElementById("showShensha").checked;
         const zone = 7;
         if (!value) return;
         const result = calculate(value, gender, zone);
         window.currentBaziResult = result;
-        renderPillars(result, showShensha);
+        renderPillars(result, showShensha, showLifeStage);
         renderRelations(result);
         renderSummary(result, gender, zone);
         renderElements(result);
-        renderLuck(result, showShensha);
+        renderLuck(result, showShensha, showLifeStage);
         renderExportData(result, gender, zone);
       } catch (error) {
         errorBox.textContent = error.message;
