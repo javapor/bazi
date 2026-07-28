@@ -658,8 +658,18 @@
     @media (max-width: 920px) {
       .workspace { grid-template-columns: 1fr; }
       .controls { position: static; }
-      .pillars { grid-template-columns: repeat(4, minmax(190px, 1fr)); }
-      .pillar { min-width: 190px; }
+      .pillar-map { overflow-x: hidden; }
+      .pillars { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 8px; row-gap: 0; }
+      .pillar { min-width: 0; }
+      .pillar-title { padding: 8px 7px; font-size: 12px; }
+      .symbol { padding: 11px 6px; }
+      .han { font-size: 44px; }
+      .meta { font-size: 11px; overflow-wrap: anywhere; }
+      .ten-god { font-size: 10px; }
+      .life-stage { font-size: 10px; }
+      .hidden { padding: 8px 7px; font-size: 11px; }
+      .chip { white-space: normal; overflow-wrap: anywhere; }
+      .shensha-badge { white-space: normal; text-align: center; }
       .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .relation-list { grid-template-columns: 1fr; }
       .luck-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -671,7 +681,6 @@
       .badge { display: inline-block; margin-top: 12px; }
       .controls, .section { padding: 10px; }
       .results { gap: 14px; }
-      .pillar-map { overflow-x: hidden; }
       .pillars { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 4px; row-gap: 0; }
       .pillar { min-width: 0; }
       .pillar-title { justify-content: center; padding: 6px 4px; font-size: 9px; gap: 0; text-align: center; }
