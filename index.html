@@ -919,18 +919,18 @@
       "正印": "เจียอิ่ง"
     };
     const lifeStages = [
-      { han: "长生", th: "เชี่ยงแซ" },
-      { han: "沐浴", th: "หมกยก" },
-      { han: "冠带", th: "กวงตั่ว" },
-      { han: "临官", th: "หลิ่มกัว" },
-      { han: "帝旺", th: "ตี่อ่อง" },
-      { han: "衰", th: "ซ่วย" },
-      { han: "病", th: "แป๋" },
-      { han: "死", th: "ซี้" },
-      { han: "墓", th: "บ่อ" },
-      { han: "绝", th: "เจ๊าะ" },
-      { han: "胎", th: "ทอ" },
-      { han: "养", th: "เอี๊ยง" }
+      { han: "长生", th: "เชี่ยงแซ", note: "เริ่มเกิด มีแรงงอกงาม เริ่มต้นใหม่" },
+      { han: "沐浴", th: "หมกยก", note: "เปิดตัว เสน่ห์ ทดลอง ยังไม่นิ่ง" },
+      { han: "冠带", th: "กวงตั่ว", note: "เริ่มเป็นรูปเป็นร่าง แต่งตัวเข้าสังคม" },
+      { han: "临官", th: "หลิ่มกัว", note: "มีตำแหน่ง มีกำลัง ทำงานได้จริง" },
+      { han: "帝旺", th: "ตี่อ่อง", note: "กำลังสูงสุด เด่น ชัด แรงมาก" },
+      { han: "衰", th: "ซ่วย", note: "เริ่มอ่อนลง ต้องประคองและจัดสมดุล" },
+      { han: "病", th: "แป๋", note: "ติดขัด อ่อนแรง มีเรื่องต้องรักษา" },
+      { han: "死", th: "ซี้", note: "หมดรอบเดิม ปิดฉาก เปลี่ยนสภาพ" },
+      { han: "墓", th: "บ่อ", note: "เก็บสะสม ซ่อนตัว เข้าคลัง" },
+      { han: "绝", th: "เจ๊าะ", note: "ขาดตอน ตัดวงจร ก่อนเกิดรอบใหม่" },
+      { han: "胎", th: "ทอ", note: "เริ่มตั้งเค้า ตั้งครรภ์ ยังเป็นเมล็ด" },
+      { han: "养", th: "เอี๊ยง", note: "บ่มเพาะ เลี้ยงกำลัง เตรียมเติบโต" }
     ];
     const lifeStageStartBranches = [11, 6, 2, 9, 2, 9, 5, 0, 8, 3];
     const shenshaMeta = {
@@ -1325,7 +1325,7 @@
         const stemGod = tenGodLabel(dayStemIndex, pillar.gz.stem);
         const branchMainGod = tenGodLabel(dayStemIndex, branch.hidden[0]);
         const branchLifeStage = lifeStage(dayStemIndex, pillar.gz.branch);
-        const lifeStageBadge = showLifeStage ? `<div class="life-stage">เชี่ยงแซ: ${branchLifeStage.th}</div>` : "";
+        const lifeStageBadge = showLifeStage ? `<div class="life-stage" title="${branchLifeStage.han} · ${branchLifeStage.note}">เชี่ยงแซ: ${branchLifeStage.th}</div>` : "";
         const shensha = showShensha ? shenshaBadges(findShenshaForPillar(result, pillar, index)) : "";
         return `
           <article class="pillar">
@@ -2043,7 +2043,7 @@
           const hiddenStem = stems[hidden.stemIndex];
           return `<span>${hiddenStem.han} ${hiddenStem.th} · ${hidden.god}</span>`;
         }).join("");
-        const lifeStageBadge = showLifeStage ? `<div class="life-stage">เชี่ยงแซ: ${luckLifeStage.th}</div>` : "";
+        const lifeStageBadge = showLifeStage ? `<div class="life-stage" title="${luckLifeStage.han} · ${luckLifeStage.note}">เชี่ยงแซ: ${luckLifeStage.th}</div>` : "";
         const shensha = showShensha ? shenshaBadges(findShenshaForPillar(result, { gz: item.gz }, -1)) : "";
         const firstStart = item.age;
         const firstEnd = item.age + 4.9;
