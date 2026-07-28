@@ -954,6 +954,10 @@
       dahao: { th: "ไต่ห่อ", han: "大耗", note: "รั่วไหล ค่าใช้จ่าย สูญเสีย" },
       guoyin: { th: "ก๊วยซือ", han: "国印贵人", note: "เอกสาร ตำแหน่ง อำนาจองค์กร" }
     };
+    const primaryShenshaKeys = new Set([
+      "tianyi", "wenchang", "yima", "taohua", "huagai", "lu", "yangren",
+      "guchen", "guasu", "tiande", "yuede", "kuigang", "taiji"
+    ]);
     const tianyiBranchesByStem = [[1, 7], [0, 8], [11, 9], [11, 9], [1, 7], [0, 8], [1, 7], [6, 2], [5, 3], [5, 3]];
     const wenchangBranchByStem = [5, 6, 8, 9, 8, 9, 11, 0, 2, 3];
     const jinyuBranchByStem = [4, 5, 7, 8, 7, 8, 10, 11, 1, 2];
@@ -1190,7 +1194,9 @@
       const yearBranch = yearPillar.gz.branch;
       const monthBranch = monthPillar.gz.branch;
       const matches = [];
-      const add = (key, ref) => matches.push({ key, ref, ...shenshaMeta[key] });
+      const add = (key, ref) => {
+        if (primaryShenshaKeys.has(key)) matches.push({ key, ref, ...shenshaMeta[key] });
+      };
       const branch = pillar.gz.branch;
       const stem = pillar.gz.stem;
 
