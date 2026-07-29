@@ -666,10 +666,30 @@
     .annual-year summary {
       color: var(--ink);
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr) auto auto;
       gap: 6px;
       align-items: center;
       font-size: 11px;
+    }
+
+    .annual-export-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .annual-export-label input {
+      width: 14px;
+      min-height: 14px;
+      height: 14px;
+      margin: 0;
+      padding: 0;
+      accent-color: var(--accent-2);
     }
 
     .annual-gz {
@@ -2187,7 +2207,48 @@
       return `${style.th}${style.cn ? ` ${style.cn}` : ""}: ${pair}${rel.note ? ` - ${rel.note}` : ""}`;
     }
 
-    function buildExportText(result, gender, zone) {
+    function annualYearDetails(result, luckItem, yearItem) {
+      const dayStemIndex = result.pillars.find(p => p.label === "Day Pillar").gz.stem;
+      const monthBranch = getMonthBranch(result.pillars);
+      const stem = stems[yearItem.gz.stem];
+      const branch = branches[yearItem.gz.branch];
+      const stemGod = tenGodLabel(dayStemIndex, yearItem.gz.stem);
+      const branchMainGod = tenGodLabel(dayStemIndex, branch.hidden[0]);
+      const hidden = hiddenGodsForBranch(dayStemIndex, yearItem.gz.branch)
+        .map(item => ({
+          stem: stems[item.stemIndex],
+          god: item.god,
+          weight: item.weight
+        }));
+      const life = lifeStage(yearItem.gz.stem, yearItem.gz.branch);
+      const shensha = findShenshaForPillar(result, yearItem, -1);
+      const natalRelations = findLuckNatalRelations(result, yearItem).map(annualNatalRelationText);
+      const luckRelations = findAnnualLuckRelations(yearItem, luckItem, monthBranch).map(annualLuckRelationText);
+      return { stem, branch, stemGod, branchMainGod, hidden, life, shensha, natalRelations, luckRelations };
+    }
+
+    function annualYearExportLines(result, luckItem, yearItem) {
+      const detail = annualYearDetails(result, luckItem, yearItem);
+      return [
+        `- ปีจร ${yearItem.year} อายุ ${yearItem.age.toFixed(1)}: ${formatStemForExport(yearItem.gz.stem)} / ${formatBranchForExport(yearItem.gz.branch)}`,
+        `  ราศีบน: จับซิ้ง=${detail.stemGod}`,
+        `  ราศีล่าง: จับซิ้งชี่หลัก=${detail.branchMainGod}`,
+        `  กิ่งซ่อน: ${detail.hidden.map(item => `${item.stem.han} ${item.stem.th} = ${item.god} (${item.weight})`).join("; ")}`,
+        `  เชี่ยงแซ: ${detail.life.th} ${detail.life.han}`,
+        `  ซิ้งสั๊วะ: ${shenshaText(detail.shensha)}`,
+        `  ความสัมพันธ์กับพื้นดวง: ${detail.natalRelations.length ? detail.natalRelations.join("; ") : "ไม่พบความสัมพันธ์เด่น"}`,
+        `  ความสัมพันธ์กับวัยจร: ${detail.luckRelations.length ? detail.luckRelations.join("; ") : "ไม่พบความสัมพันธ์เด่น"}`
+      ];
+    }
+
+    function selectedAnnualExports() {
+      return Array.from(document.querySelectorAll(".annual-export:checked")).map(input => ({
+        luckIndex: Number(input.dataset.luckIndex),
+        year: Number(input.dataset.year)
+      }));
+    }
+
+    function buildExportText(result, gender, zone, selectedAnnual = []) {
       const dayStemIndex = result.pillars.find(p => p.label === "Day Pillar").gz.stem;
       const counts = calculateElementCounts(result);
       const relations = [
@@ -2251,13 +2312,24 @@
         }
       });
 
+      if (selectedAnnual.length) {
+        lines.push("", "ปีจรที่เลือก");
+        selectedAnnual.forEach(selection => {
+          const luckItem = result.luck[selection.luckIndex];
+          if (!luckItem) return;
+          const yearItem = annualYearsForLuck(result, luckItem).find(item => item.year === selection.year);
+          if (!yearItem) return;
+          lines.push(...annualYearExportLines(result, luckItem, yearItem));
+        });
+      }
+
       return lines.join("\n");
     }
 
-    function renderExportData(result, gender, zone) {
+    function renderExportData(result, gender, zone, selectedAnnual = selectedAnnualExports()) {
       const exportText = document.getElementById("exportText");
       if (!exportText) return;
-      exportText.value = buildExportText(result, gender, zone);
+      exportText.value = buildExportText(result, gender, zone, selectedAnnual);
       document.getElementById("exportStatus").textContent = exportHelpText;
     }
 
@@ -2281,37 +2353,30 @@
       }
     }
 
-    function renderAnnualYears(result, luckItem, showShensha, showLifeStage) {
-      const dayStemIndex = result.pillars.find(p => p.label === "Day Pillar").gz.stem;
-      const monthBranch = getMonthBranch(result.pillars);
+    function renderAnnualYears(result, luckItem, luckIndex, showShensha, showLifeStage) {
       const years = annualYearsForLuck(result, luckItem);
       return `
         <details class="annual-years">
           <summary>ปีจร ${years[0].year}-${years[years.length - 1].year}</summary>
           <div class="annual-list">
             ${years.map(yearItem => {
-              const stem = stems[yearItem.gz.stem];
-              const branch = branches[yearItem.gz.branch];
-              const stemGod = tenGodLabel(dayStemIndex, yearItem.gz.stem);
-              const branchMainGod = tenGodLabel(dayStemIndex, branch.hidden[0]);
-              const annualHidden = hiddenGodsForBranch(dayStemIndex, yearItem.gz.branch)
-                .map(hidden => `${stems[hidden.stemIndex].han} ${stems[hidden.stemIndex].th} · ${hidden.god}`)
-                .join("; ");
-              const annualLifeStage = lifeStage(yearItem.gz.stem, yearItem.gz.branch);
-              const annualShensha = shenshaText(findShenshaForPillar(result, yearItem, -1));
-              const natalRelations = findLuckNatalRelations(result, yearItem).map(annualNatalRelationText);
-              const luckRelations = findAnnualLuckRelations(yearItem, luckItem, monthBranch).map(annualLuckRelationText);
+              const detail = annualYearDetails(result, luckItem, yearItem);
+              const annualHidden = detail.hidden.map(item => `${item.stem.han} ${item.stem.th} · ${item.god}`).join("; ");
               return `
                 <details class="annual-year">
-                  <summary><span>${yearItem.year} · อายุ ${yearItem.age.toFixed(1)}</span><span class="annual-gz ${stem.cls}">${stem.han}${branch.han}</span></summary>
+                  <summary>
+                    <span>${yearItem.year} · อายุ ${yearItem.age.toFixed(1)}</span>
+                    <label class="annual-export-label"><input type="checkbox" class="annual-export" data-luck-index="${luckIndex}" data-year="${yearItem.year}">ส่งออก</label>
+                    <span class="annual-gz ${detail.stem.cls}">${detail.stem.han}${detail.branch.han}</span>
+                  </summary>
                   <div class="annual-detail">
-                    <span><strong>ราศีบน:</strong> ${stem.th} · ${stem.element}${stem.yinYang} · จับซิ้ง ${stemGod}</span>
-                    <span><strong>ราศีล่าง:</strong> ${branch.th} · ${branch.element} · จับซิ้งชี่หลัก ${branchMainGod}</span>
+                    <span><strong>ราศีบน:</strong> ${detail.stem.th} · ${detail.stem.element}${detail.stem.yinYang} · จับซิ้ง ${detail.stemGod}</span>
+                    <span><strong>ราศีล่าง:</strong> ${detail.branch.th} · ${detail.branch.element} · จับซิ้งชี่หลัก ${detail.branchMainGod}</span>
                     <span><strong>กิ่งซ่อน:</strong> ${annualHidden}</span>
-                    ${showLifeStage ? `<span><strong>เชี่ยงแซ:</strong> ${annualLifeStage.th}</span>` : ""}
-                    ${showShensha ? `<span><strong>ซิ้งสั๊วะ:</strong> ${annualShensha}</span>` : ""}
-                    <span><strong>กับพื้นดวง:</strong> ${natalRelations.length ? natalRelations.join("; ") : "ไม่พบความสัมพันธ์เด่น"}</span>
-                    <span><strong>กับวัยจร:</strong> ${luckRelations.length ? luckRelations.join("; ") : "ไม่พบความสัมพันธ์เด่น"}</span>
+                    ${showLifeStage ? `<span><strong>เชี่ยงแซ:</strong> ${detail.life.th}</span>` : ""}
+                    ${showShensha ? `<span><strong>ซิ้งสั๊วะ:</strong> ${shenshaText(detail.shensha)}</span>` : ""}
+                    <span><strong>กับพื้นดวง:</strong> ${detail.natalRelations.length ? detail.natalRelations.join("; ") : "ไม่พบความสัมพันธ์เด่น"}</span>
+                    <span><strong>กับวัยจร:</strong> ${detail.luckRelations.length ? detail.luckRelations.join("; ") : "ไม่พบความสัมพันธ์เด่น"}</span>
                   </div>
                 </details>
               `;
@@ -2323,7 +2388,7 @@
 
     function renderLuck(result, showShensha, showLifeStage) {
       const dayStemIndex = result.pillars.find(p => p.label === "Day Pillar").gz.stem;
-      document.getElementById("luckGrid").innerHTML = result.luck.map(item => {
+      document.getElementById("luckGrid").innerHTML = result.luck.map((item, luckIndex) => {
         const stem = stems[item.gz.stem];
         const branch = branches[item.gz.branch];
         const stemGod = tenGodLabel(dayStemIndex, item.gz.stem);
@@ -2336,7 +2401,7 @@
         const hiddenGodsBlock = hiddenGods ? `<div class="luck-hidden"><strong>กิ่งซ่อน/จับซิ้ง</strong>${hiddenGods}</div>` : "";
         const lifeStageBadge = showLifeStage ? `<div class="life-stage" title="${luckLifeStage.han} · ${luckLifeStage.note}">เชี่ยงแซ: ${luckLifeStage.th}</div>` : "";
         const shensha = showShensha ? shenshaBadges(findShenshaForPillar(result, { gz: item.gz }, -1)) : "";
-        const annualYears = renderAnnualYears(result, item, showShensha, showLifeStage);
+        const annualYears = renderAnnualYears(result, item, luckIndex, showShensha, showLifeStage);
         const firstStart = item.age;
         const firstEnd = item.age + 4.9;
         const secondStart = item.age + 5;
@@ -2448,6 +2513,14 @@
       document.getElementById("birthDate").focus();
     });
     document.getElementById("copyExport").addEventListener("click", copyExportData);
+    document.addEventListener("click", event => {
+      if (event.target.closest?.(".annual-export-label")) event.stopPropagation();
+    });
+    document.addEventListener("change", event => {
+      if (!event.target.classList?.contains("annual-export") || !window.currentBaziResult) return;
+      const gender = document.getElementById("gender").value;
+      renderExportData(window.currentBaziResult, gender, 7);
+    });
     document.querySelectorAll("#baziForm input, #baziForm select").forEach(el => el.addEventListener("change", renderAll));
     document.getElementById("relationAll").addEventListener("change", event => {
       document.querySelectorAll(".relation-filter").forEach(input => {
