@@ -633,6 +633,62 @@
       margin-top: 8px;
     }
 
+    .annual-years {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fbfcfd;
+      margin-top: 9px;
+      padding: 7px;
+    }
+
+    .annual-years summary {
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--accent-2);
+    }
+
+    .annual-list {
+      display: grid;
+      gap: 6px;
+      margin-top: 7px;
+    }
+
+    .annual-year {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      padding: 6px;
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .annual-year summary {
+      color: var(--ink);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 6px;
+      align-items: center;
+      font-size: 11px;
+    }
+
+    .annual-gz {
+      font-family: "Songti SC", "Noto Serif CJK SC", serif;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .annual-detail {
+      display: grid;
+      gap: 4px;
+      margin-top: 6px;
+      color: var(--muted);
+    }
+
+    .annual-detail strong {
+      color: var(--ink);
+    }
+
     .element-bars {
       display: grid;
       gap: 9px;
@@ -2031,6 +2087,106 @@
       return `${style.th}${style.cn ? ` ${style.cn}` : ""}: ${pair}${rel.note ? ` - ${rel.note}` : ""}`;
     }
 
+    function annualYearsForLuck(result, luckItem) {
+      const startYear = result.local.year + Math.floor(luckItem.age);
+      return Array.from({ length: 10 }, (_, offset) => {
+        const year = startYear + offset;
+        return {
+          year,
+          age: luckItem.age + offset,
+          gz: sexagenary(year - 4)
+        };
+      });
+    }
+
+    function findAnnualLuckRelations(annualItem, luckItem, monthBranch) {
+      const relations = [];
+      const add = relation => addUniqueRelation(relations, relation);
+      const annualStem = annualItem.gz.stem;
+      const luckStem = luckItem.gz.stem;
+      if (tenGod(annualStem, luckStem) === "七杀") {
+        add({
+          scope: "stem",
+          type: "killer",
+          a: luckStem,
+          b: annualStem,
+          note: `${stemName(luckStem)}เป็นชิกสัวะของ${stemName(annualStem)}`,
+          target: "วัยจร",
+          annualSide: "killed"
+        });
+      } else if (tenGod(luckStem, annualStem) === "七杀") {
+        add({
+          scope: "stem",
+          type: "killer",
+          a: annualStem,
+          b: luckStem,
+          note: `${stemName(annualStem)}เป็นชิกสัวะของ${stemName(luckStem)}`,
+          target: "วัยจร",
+          annualSide: "killer"
+        });
+      }
+
+      stemRelations.forEach(([type, first, second, note]) => {
+        const a = annualItem.gz.stem;
+        const b = luckItem.gz.stem;
+        if ((a === first && b === second) || (a === second && b === first)) {
+          add({ scope: "stem", type, a, b, note, target: "วัยจร" });
+        }
+      });
+
+      pairRelations.forEach(([type, first, second, note]) => {
+        const a = annualItem.gz.branch;
+        const b = luckItem.gz.branch;
+        if ((a === first && b === second) || (a === second && b === first)) {
+          add({ scope: "branch", type, a, b, note, target: "วัยจร" });
+        }
+      });
+      if (annualItem.gz.branch === luckItem.gz.branch && selfPunishmentBranches.has(annualItem.gz.branch)) {
+        add({ scope: "branch", type: "punishment", a: annualItem.gz.branch, b: luckItem.gz.branch, self: true, target: "วัยจร" });
+      }
+
+      trineGroups.forEach(group => {
+        if (group.branches.includes(annualItem.gz.branch) && group.branches.includes(luckItem.gz.branch) && annualItem.gz.branch !== luckItem.gz.branch) {
+          add({
+            scope: "branch",
+            type: halfTrineRelationTypeAndNote(group, monthBranch).type,
+            a: annualItem.gz.branch,
+            b: luckItem.gz.branch,
+            note: halfTrineRelationTypeAndNote(group, monthBranch).note,
+            target: "วัยจร"
+          });
+        }
+      });
+
+      return relations;
+    }
+
+    function annualLuckRelationText(rel) {
+      const style = relationStyles[rel.type];
+      const pair = rel.type === "killer" && rel.annualSide === "killer"
+        ? `${stemName(rel.a)}(ปีจร) -> ${stemName(rel.b)}(วัยจร)`
+        : rel.type === "killer" && rel.annualSide === "killed"
+        ? `${stemName(rel.a)}(วัยจร) -> ${stemName(rel.b)}(ปีจร)`
+        : rel.self
+        ? `${branchName(rel.a)} ซ้ำกัน`
+        : `${rel.scope === "stem" ? stemName(rel.a) : branchName(rel.a)}(ปีจร) -> ${rel.scope === "stem" ? stemName(rel.b) : branchName(rel.b)}(วัยจร)`;
+      return `${style.th}${style.cn ? ` ${style.cn}` : ""}: ${pair}${rel.note ? ` - ${rel.note}` : ""}`;
+    }
+
+    function annualNatalRelationText(rel) {
+      const style = relationStyles[rel.type];
+      if (rel.type === "trine" || rel.type === "meeting") {
+        const pair = rel.members.map(member => member.pillar === "รอบดวง" ? branchName(member.branch) : `${branchName(member.branch)}(${member.pillar})`).join(" + ");
+        return `${style.th}${style.cn ? ` ${style.cn}` : ""}: ${pair.replaceAll("รอบดวง", "ปีจร")}${rel.note ? ` - ${rel.note}` : ""}`;
+      }
+      const pair = rel.type === "killer" && rel.luckSide === "killer"
+        ? `${stemName(rel.a)}(ปีจร) -> ${stemName(rel.b)}(${rel.pillar})`
+        : rel.type === "killer" && rel.luckSide === "killed"
+        ? `${stemName(rel.a)}(${rel.pillar}) -> ${stemName(rel.b)}(ปีจร)`
+        : `${rel.scope === "stem" ? stemName(rel.a) : branchName(rel.a)}(ปีจร) -> ${rel.scope === "stem" ? stemName(rel.b) : branchName(rel.b)}(${rel.pillar})`;
+      return `${style.th}${style.cn ? ` ${style.cn}` : ""}: ${pair}${rel.note ? ` - ${rel.note}` : ""}`;
+    }
+
     function buildExportText(result, gender, zone) {
       const dayStemIndex = result.pillars.find(p => p.label === "Day Pillar").gz.stem;
       const counts = calculateElementCounts(result);
@@ -2125,6 +2281,46 @@
       }
     }
 
+    function renderAnnualYears(result, luckItem, showShensha, showLifeStage) {
+      const dayStemIndex = result.pillars.find(p => p.label === "Day Pillar").gz.stem;
+      const monthBranch = getMonthBranch(result.pillars);
+      const years = annualYearsForLuck(result, luckItem);
+      return `
+        <details class="annual-years">
+          <summary>ปีจร ${years[0].year}-${years[years.length - 1].year}</summary>
+          <div class="annual-list">
+            ${years.map(yearItem => {
+              const stem = stems[yearItem.gz.stem];
+              const branch = branches[yearItem.gz.branch];
+              const stemGod = tenGodLabel(dayStemIndex, yearItem.gz.stem);
+              const branchMainGod = tenGodLabel(dayStemIndex, branch.hidden[0]);
+              const annualHidden = hiddenGodsForBranch(dayStemIndex, yearItem.gz.branch)
+                .map(hidden => `${stems[hidden.stemIndex].han} ${stems[hidden.stemIndex].th} · ${hidden.god}`)
+                .join("; ");
+              const annualLifeStage = lifeStage(yearItem.gz.stem, yearItem.gz.branch);
+              const annualShensha = shenshaText(findShenshaForPillar(result, yearItem, -1));
+              const natalRelations = findLuckNatalRelations(result, yearItem).map(annualNatalRelationText);
+              const luckRelations = findAnnualLuckRelations(yearItem, luckItem, monthBranch).map(annualLuckRelationText);
+              return `
+                <details class="annual-year">
+                  <summary><span>${yearItem.year} · อายุ ${yearItem.age.toFixed(1)}</span><span class="annual-gz ${stem.cls}">${stem.han}${branch.han}</span></summary>
+                  <div class="annual-detail">
+                    <span><strong>ราศีบน:</strong> ${stem.th} · ${stem.element}${stem.yinYang} · จับซิ้ง ${stemGod}</span>
+                    <span><strong>ราศีล่าง:</strong> ${branch.th} · ${branch.element} · จับซิ้งชี่หลัก ${branchMainGod}</span>
+                    <span><strong>กิ่งซ่อน:</strong> ${annualHidden}</span>
+                    ${showLifeStage ? `<span><strong>เชี่ยงแซ:</strong> ${annualLifeStage.th}</span>` : ""}
+                    ${showShensha ? `<span><strong>ซิ้งสั๊วะ:</strong> ${annualShensha}</span>` : ""}
+                    <span><strong>กับพื้นดวง:</strong> ${natalRelations.length ? natalRelations.join("; ") : "ไม่พบความสัมพันธ์เด่น"}</span>
+                    <span><strong>กับวัยจร:</strong> ${luckRelations.length ? luckRelations.join("; ") : "ไม่พบความสัมพันธ์เด่น"}</span>
+                  </div>
+                </details>
+              `;
+            }).join("")}
+          </div>
+        </details>
+      `;
+    }
+
     function renderLuck(result, showShensha, showLifeStage) {
       const dayStemIndex = result.pillars.find(p => p.label === "Day Pillar").gz.stem;
       document.getElementById("luckGrid").innerHTML = result.luck.map(item => {
@@ -2140,6 +2336,7 @@
         const hiddenGodsBlock = hiddenGods ? `<div class="luck-hidden"><strong>กิ่งซ่อน/จับซิ้ง</strong>${hiddenGods}</div>` : "";
         const lifeStageBadge = showLifeStage ? `<div class="life-stage" title="${luckLifeStage.han} · ${luckLifeStage.note}">เชี่ยงแซ: ${luckLifeStage.th}</div>` : "";
         const shensha = showShensha ? shenshaBadges(findShenshaForPillar(result, { gz: item.gz }, -1)) : "";
+        const annualYears = renderAnnualYears(result, item, showShensha, showLifeStage);
         const firstStart = item.age;
         const firstEnd = item.age + 4.9;
         const secondStart = item.age + 5;
@@ -2187,6 +2384,7 @@
                 ${shensha}
               </div>
             </div>
+            ${annualYears}
             ${relationHtml}
           </div>
         `;
